@@ -168,3 +168,81 @@ class GameField(object):
         self.set_tower_at(to_pos, top_tower)
         self.set_tower_at(from_pos, None)
         return True
+
+
+class RuleSet(object):
+    """
+    This class provides methods that define the rules of the game and its win conditions.
+    All methods are read-only with respect to the GameField.
+    """
+
+    def __init__(self, game_field: GameField) -> None:
+        """
+        Creates a new RuleSet based on the given game field. The game field is never changed by a `RuleSet`.
+        :param game_field:
+        """
+        self.game_field = game_field
+
+    def player_may_move_tower(self, player: int, tower: Tower) -> bool:
+        """
+        Decides whether the given player is allowed to move `tower`.
+        Using this rule set, a player is allowed to move a tower if at least half of the bricks of that tower belong to
+        the player. Owning the tower is **not** a requirement.
+        This method does not check whether `tower` is actually on the game field.
+        :param player: ID of a player that is registered in the `GameField` instance of this `RuleSet`
+        :param tower: a tower instance that the players wants to move
+        :return: whether the player is allowed to move the tower given this rule set
+        """
+        player1: int = self.game_field.player1
+        player2: int = self.game_field.player2
+
+        share_player1: int = sum(map(lambda brick: brick == player1, tower.structure))
+        share_player2: int = sum(map(lambda brick: brick == player2, tower.structure))
+
+        return player == player1 and share_player1 >= share_player2 or \
+               player == player2 and share_player2 >= share_player1
+
+    def allows_move(self, from_pos: (int, int), to_pos: (int, int), player: int) -> bool:
+        """
+        Decides whether the given tower is allowed to make the move given by the two positions on the board.
+        Using this rule set, a player is allowed to make that move if
+        - he may move the tower at `from_pos` at all
+        - `to_pos` is in the king's/8's neighbourhood of `from_pos` and
+        - there are towers at both positions that have different owners.
+        :param from_pos: specifies the tower to move
+        :param to_pos: specifies the tower to move on top of
+        :param player: ID of a player that is registered in the `GameField` instance of this `RuleSet`
+        :return: whether the player is allowed to make this move given this rule set
+        """
+        # check whether both positions are neighbours (king's neighbourhood)
+        if not (-1 <= (from_pos[0] - to_pos[0]) <= 1 and -1 <= (from_pos[1] - to_pos[1]) <= 1):
+            return False
+
+        # check whether both positions are on the board and
+        # check whether there are towers on both positions
+        top_tower = self.game_field.get_tower_at(from_pos)
+        lower_tower = self.game_field.get_tower_at(to_pos)
+        if top_tower is None or lower_tower is None:
+            return False
+
+        # check whether both towers are not identical and
+        # check whether both towers have different owners (note that the latter prevents the former in this rule set)
+        if top_tower.owner == lower_tower.owner:
+            return False
+
+        # check whether the player is allowed to move the tower at from_pos at all
+        return self.player_may_move_tower(player, top_tower)
+
+
+if __name__ == "__main__":
+    gf = GameField(5, 4)
+    print(f"game value after initialization: {gf.value} (should be 0)")
+
+    rs = RuleSet(gf)
+    if rs.allows_move((0, 0), (0, 1), gf.player1):
+        gf.make_move((0, 0), (0, 1))
+        print(f"game value after move (0,0) -> (0,1): {gf.value} (should be 1)")
+    else:
+        import sys
+
+        print(f"Could not make legal move (0,0) -> (0,1)", file=sys.stderr)
