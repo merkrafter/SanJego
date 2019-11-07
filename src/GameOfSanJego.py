@@ -37,7 +37,7 @@ class Tower(object):
         :return: ID of the player owning this `Tower`
         """
         if self.structure is None or len(self.structure) == 0:
-            raise AttributeError("an empty tower does not have an owner")
+            raise AttributeError("an empty or unit tower does not have an owner")
         return self.structure[0]
 
     def move_on_top_of(self, tower: 'Tower') -> None:
@@ -112,8 +112,8 @@ class GameField(object):
         self.width = width
         self.player1 = player1
         self.player2 = player2
-        # TODO: use correct player ids
-        self.field = [Tower((h + w) % 2) for h in range(self.height) for w in range(self.width)]
+        player_tuple = (player1, player2)
+        self.field = [Tower(owner=player_tuple[(h + w) % 2]) for h in range(self.height) for w in range(self.width)]
 
     # TODO make this a method of RuleSet
     @property
@@ -124,8 +124,16 @@ class GameField(object):
         :return: difference in height of both players' highest towers
         """
         # max(height(tower of that respective player))
-        highest_p1 = max(map(lambda tower: tower.height, filter(lambda tower: tower.owner == self.player1, self.field)))
-        highest_p2 = max(map(lambda tower: tower.height, filter(lambda tower: tower.owner == self.player2, self.field)))
+        highest_p1 = max(map(lambda tower: tower.height,
+                             filter(
+                                 lambda tower: tower is not None and tower.height > 0 and tower.owner == self.player1,
+                                 self.field)),
+                         default=0)
+        highest_p2 = max(map(lambda tower: tower.height,
+                             filter(
+                                 lambda tower: tower is not None and tower.height > 0 and tower.owner == self.player2,
+                                 self.field)),
+                         default=0)
         return highest_p1 - highest_p2
 
     def __float__(self) -> float:
@@ -147,7 +155,7 @@ class GameField(object):
         :param pos: specifies the position to get a tower from
         :return: a `Tower` instance, if there is a one at `pos` or `None` otherwise.
         """
-        if not 0 <= pos[0] < self.height and 0 <= pos[1] < self.width:
+        if not (0 <= pos[0] < self.height and 0 <= pos[1] < self.width):
             return None
         x = pos[0]
         y = pos[1]
@@ -162,13 +170,13 @@ class GameField(object):
         :param pos: the 0-indexed position to set the tower at
         :return: whether this method was successful
         """
-        if not 0 <= pos[0] < self.height and 0 <= pos[1] < self.width:
+        if not (0 <= pos[0] < self.height and 0 <= pos[1] < self.width):
             return False
 
         # if the position is to be cleared, replace it with a "unit tower" so it does not break the calculation of the
         # game value (as None would)
         if tower is None:
-            tower = Tower(-1, [])
+            tower = Tower(structure=[])
 
         x = pos[0]
         y = pos[1]
@@ -179,12 +187,17 @@ class GameField(object):
         """
         Moves the tower at `from_pos` on top of the tower at `to_pos` and returns whether this was successful.
         The method does not check whether this move is legal under the current rules.
-        It does, however, check whether this move is technically possible, i.e. both positions contain towers.
+        It does, however, check whether this move is technically possible, i.e. both positions are distinct and
+        contain towers.
         Both positions are 0-indexed and specify the row in the first component and the column in the second.
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :return: whether the move was successful
         """
+        # check whether both positions are different
+        if from_pos == to_pos:
+            return False
+
         # check whether there are towers on both positions
         top_tower = self.get_tower_at(from_pos)
         lower_tower = self.get_tower_at(to_pos)
