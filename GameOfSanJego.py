@@ -1,4 +1,4 @@
-from typing import Collection, Optional
+from typing import List, Optional
 
 
 class Tower(object):
@@ -8,18 +8,37 @@ class Tower(object):
     Each tower as an owner that is determined by the topmost brick.
     """
 
-    def __init__(self, owner: int, structure: Collection[int] = None):
+    def __init__(self, owner: Optional[int] = None, structure: List[int] = None):
         """
         Creates a new Tower based on the owner and an optional structure (for debugging purposes mainly).
         If no `structure` is given, a new Tower of height one with one brick (the owner) is created.
         :param owner: the player that gets points for this tower
         :param structure: a list of numbers that belong to the game's players
         """
-        self.owner = owner
-        if structure is None:
-            self.structure = [owner]
-        else:
-            self.structure = structure
+        if owner is None:
+            if structure is None:
+                raise ValueError("can not create a tower without any arguments")
+            else:
+                self.structure = structure
+        else:  # owner is passed
+            if structure is None:
+                self.structure = [owner]
+            elif len(structure) > 0 and structure[0] == owner:  # owner and structure passed
+                self.structure = structure
+            else:  # both passed but conflicting
+                raise ValueError(f"passed owner ({owner}) and structure ({structure}) are conflicting")
+
+    @property
+    def owner(self) -> int:
+        """
+        The owner of a tower is derived from the topmost brick.
+        It is not defined for empty (`structure is None`) or unit (`structure==[]`) towers hence an `AttributeError`
+        is raised in that case.
+        :return: ID of the player owning this `Tower`
+        """
+        if self.structure is None or len(self.structure) == 0:
+            raise AttributeError("an empty tower does not have an owner")
+        return self.structure[0]
 
     def move_on_top_of(self, tower: 'Tower') -> None:
         """
@@ -27,14 +46,22 @@ class Tower(object):
         check whether the move is actually allowed with the current game's rules..
         :param tower: the Tower to add below *this* one
         """
+        # TODO make this a method of the lower tower and change the GameField method accordingly
+        if tower is None:
+            raise ValueError("can not move this tower on top of None")
+        if self.structure is None or tower.structure is None:
+            raise ValueError("can not move empty towers on top of each other")
         self.structure += tower.structure
 
     @property
     def height(self) -> int:
         """
-        The height of a tower is the size of the underlying brick structure and therefore a positive integer.
+        The height of a tower is the size of the underlying brick structure and therefore a non-negative integer.
+        It is not defined for empty (`structure is None`) towers hence an `AttributeError` is raised in that case.
         :return: height of this tower
         """
+        if self.structure is None:
+            raise AttributeError("an empty tower does not have a height")
         return len(self.structure)
 
     def __eq__(self, other: 'Tower') -> bool:
@@ -88,6 +115,7 @@ class GameField(object):
         # TODO: use correct player ids
         self.field = [Tower((h + w) % 2) for h in range(self.height) for w in range(self.width)]
 
+    # TODO make this a method of RuleSet
     @property
     def value(self) -> int:
         """
