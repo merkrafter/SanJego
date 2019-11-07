@@ -1,6 +1,6 @@
 import unittest
 
-import Searching
+from src import Searching
 
 
 class BinaryNode:
