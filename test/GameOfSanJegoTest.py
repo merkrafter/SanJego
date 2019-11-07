@@ -1,7 +1,7 @@
 import unittest
 from unittest import TestCase
 
-from src.GameOfSanJego import Tower
+from src.GameOfSanJego import Tower, GameField
 
 UNSAFE_MODE = False  # allows the execution of tests that contain eval expressions
 
@@ -179,6 +179,261 @@ class TestTower(TestCase):
         tower = Tower(1)
         self.assertEqual(eval(tower.__repr__()), tower, "The evaluation of a tower's __repr__() method should be equal\
                                                         to that tower.")
+
+
+class TestGameField(TestCase):
+    def test_default__init__(self) -> None:
+        """
+        The `GameField` constructor should set the field's height and width correctly.
+        """
+        for expected_height in range(-10, 11):
+            for expected_width in range(-10, 11):
+                with self.subTest(f"height {expected_height} and width {expected_width}"):
+                    gf = GameField(height=expected_height, width=expected_width)
+                    actual_height = gf.height
+                    actual_width = gf.width
+                    self.assertEqual(expected_height, actual_height,
+                                     f"expected given height ({expected_height}) after constructor call\
+                                     but got {actual_height}")
+                    self.assertEqual(expected_width, actual_width,
+                                     f"expected given width ({expected_width}) after constructor call\
+                                     but got {actual_width}")
+
+    def test_players_at__init__(self) -> None:
+        """
+        The `GameField` constructor should set the field's players correctly.
+        """
+        # make sure to include positive, negative and neutral numbers
+        for expected_player1 in range(-1, 2):
+            for expected_player2 in [p for p in range(-1, 2) if p != expected_player1]:
+                with self.subTest(f"max. player {expected_player1} and min. player {expected_player2}"):
+                    gf = GameField(height=2, width=2, player1=expected_player1, player2=expected_player2)
+                    actual_player1 = gf.player1
+                    actual_player2 = gf.player2
+                    self.assertEqual(expected_player1, actual_player1,
+                                     f"expected given player1 ({expected_player1}) after constructor call\
+                                     but got {actual_player1}")
+                    self.assertEqual(expected_player2, actual_player2,
+                                     f"expected given player2 ({expected_player2}) after constructor call\
+                                 but got {actual_player2}")
+
+    def test_players_on_field(self) -> None:
+        """
+        The `GameField`'s board should contain (and *only* contain) the players specified at the constructor call.
+        """
+        # make sure to include positive, negative and neutral numbers
+        for expected_player1 in range(-1, 2):
+            for expected_player2 in [p for p in range(-1, 2) if p != expected_player1]:
+                with self.subTest(f"players {expected_player1} and {expected_player2}"):
+                    gf = GameField(height=2, width=2, player1=expected_player1, player2=expected_player2)
+
+                    # check whether the intended players have towers on the board
+                    self.assertTrue(expected_player1 in map(lambda x: x.owner, gf.field),
+                                    f"player {expected_player1} should be on the board")
+                    self.assertTrue(expected_player2 in map(lambda x: x.owner, gf.field),
+                                    f"player {expected_player2} should be on the board")
+
+                    # check whether there are towers with other owners than the given players on the board
+                    additional_players_on_board = [p for p in map(lambda x: x.owner, gf.field) if
+                                                   p != expected_player1 and p != expected_player2]
+                    self.assertEqual([], additional_players_on_board,
+                                     f"there should be no more players on the board than {expected_player1} and\
+                                    {expected_player2} but found {additional_players_on_board}")
+
+    def test_value_after_construction(self) -> None:
+        """
+        Right after creation, a game field's value should be 0 to make the game fair.
+        """
+        expected_value = 0
+        for height in range(1, 10):
+            for width in range(1, 10):
+                if not height * width == 1:  # if there's only one tower, the game value is not 0
+                    with self.subTest(f"height {height} and {width}"):
+                        gf = GameField(height=height, width=width)
+                        actual_value = gf.value
+                        self.assertEqual(expected_value, actual_value,
+                                         "the value of a GameField should be 0 after creation")
+
+    def test_value_after_construction_with_one_tower(self) -> None:
+        """
+        If there is only one tower on the field, the game value should be `±height` of that tower.
+        """
+
+        gf = GameField(1, 1)
+        for tower_height in range(1, 6):
+            # maximising player
+            with self.subTest(f"height {tower_height} for max"):
+                gf.set_tower_at(pos=(0, 0), tower=Tower(structure=[gf.player1] * tower_height))
+                expected_value = tower_height
+                actual_value = gf.value
+                self.assertEqual(expected_value, actual_value, f"one tower with height {expected_value} owned by max\
+                                 player should give a game value of {expected_value} but is {actual_value}")
+
+            # minimising player
+            with self.subTest(f"height {tower_height} for min"):
+                gf.set_tower_at(pos=(0, 0), tower=Tower(structure=[gf.player2] * tower_height))
+                expected_value = -1 * tower_height
+                actual_value = gf.value
+                self.assertEqual(expected_value, actual_value, f"one tower with height {expected_value} owned by min\
+                                 player should give a game value of {expected_value} but is {actual_value}")
+
+    def test_value_after_first_move(self) -> None:
+        """
+        After making the first move, a game field's value should be ±1 for non-trivial fields depending on the player
+        making the move.
+        A trivial field is one of size `height * width <= 2`
+        """
+
+        height = 2
+        width = 3
+
+        self.assertTrue(height * width > 2,
+                        f"misconfigured test: height*width should be greater than 2 but is {height}*{width} <= 2")
+
+        with self.subTest("move for max (1st) player"):
+            gf = GameField(height=height, width=width)
+            gf.make_move((0, 0), (0, 1))  # move in favor of player 1 (maximising)
+            expected_value = 1
+            actual_value = gf.value
+            self.assertEqual(expected_value, actual_value,
+                             "the value of a GameField should be 1 after first move of maximising (1st) player")
+
+        with self.subTest("move for min (2nd) player"):
+            gf = GameField(height=height, width=width)
+            gf.make_move((0, 1), (0, 0))  # move in favor of player 2 (minimising)
+            expected_value = -1
+            actual_value = gf.value
+            self.assertEqual(expected_value, actual_value,
+                             "the value of a GameField should be -1 after first move of minimising (2nd) player")
+
+    def test_set_and_get_tower_at(self) -> None:
+        """
+        Setting and getting a tower to and from the same position should return that tower.
+        """
+        pos = (0, 0)
+        gf = GameField(1, 1)
+        expected_tower = Tower(owner=gf.player1)
+        gf.set_tower_at(pos, expected_tower)
+        actual_tower = gf.get_tower_at(pos)
+        self.assertEqual(expected_tower, actual_tower,
+                         f"Setting a tower to a location and getting one from there right after setting should return\
+                         the same tower")
+
+    def test_get_tower_at_invalid_positions(self) -> None:
+        """
+        Getting a tower from an invalid position should not raise an error but return `None` instead to simplify
+        algorithms later.
+        """
+        height = 5
+        width = 4
+        for x in [-1, 0, height]:
+            for y in [-1, 0, width]:
+                if not (x == 0 and y == 0):  # this is a valid position
+                    with self.subTest(f"pos = ({x}, {y})"):
+                        expected_tower = None
+                        gf = GameField(height=height, width=width)
+                        actual_tower = gf.get_tower_at((x, y))
+                        self.assertEqual(expected_tower, actual_tower,
+                                         "Getting a tower from an invalid position should return None")
+
+    def test_set_tower_at_valid_positions(self) -> None:
+        """
+        Setting a tower at a valid position should communicate that this operation was successful.
+        """
+        height = 5
+        width = 4
+        some_tower = Tower(owner=1)  # not relevant for this test
+
+        # these for loops cover the edge cases and the one in the middle
+        for x in [0, height // 2, height - 1]:
+            for y in [0, height // 2, width - 1]:
+                with self.subTest(f"pos = ({x}, {y})"):
+                    gf = GameField(height=height, width=width)
+                    self.assertTrue(gf.set_tower_at(pos=(x, y), tower=some_tower),
+                                    "Setting a tower to a valid position should return True")
+
+    def test_set_tower_at_invalid_positions(self) -> None:
+        """
+        Setting a tower at an invalid position should communicate that this operation could not be fulfilled.
+        """
+        height = 5
+        width = 4
+        some_tower = Tower(owner=1)  # not relevant for this test
+
+        # these loops test positions that are just one off as well as positions that are far off
+        for x in [-5, -1, 0, height]:
+            for y in [-1, 0, width]:
+                if not (x == 0 and y == 0):  # this is a valid position
+                    with self.subTest(f"pos = ({x}, {y})"):
+                        gf = GameField(height=height, width=width)
+                        self.assertFalse(gf.set_tower_at(pos=(x, y), tower=some_tower),
+                                         "Setting a tower to an invalid position should return False")
+
+    def test_make_move(self) -> None:
+        """
+        Making a valid move should communicate that this operation was successful.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2)
+
+        successful: bool = gf.make_move(from_pos, to_pos)
+        self.assertTrue(successful, "Making a valid move should return True")
+
+    def test_make_move_to_and_from_invalid_positions(self) -> None:
+        """
+        Making an invalid move should communicate that this operation was not successful.
+        """
+        height = 5
+        width = 4
+        positions = [(x, y) for x in [-1, 0, height] for y in [-1, 0, width] if not (x == 0 and y == 0)]
+        for from_pos in positions:
+            for to_pos in positions:
+                with self.subTest(f"{from_pos} -> {to_pos}"):
+                    gf = GameField(height=height, width=width)
+
+                    successful: bool = gf.make_move(from_pos, to_pos)
+                    self.assertFalse(successful, "Making an invalid move should return False")
+
+    def test_make_move_inplace(self) -> None:
+        """
+        It should not be possible to move a tower to its own position.
+        """
+        pos = (0, 0)
+        gf = GameField(1, 2)
+
+        successful: bool = gf.make_move(from_pos=pos, to_pos=pos)
+        self.assertFalse(successful, "Trying to move a tower from and to the same position should return False")
+
+    def test_moves_towers_correctly(self) -> None:
+        """
+        Moving a tower should remove a tower from the 'source' position and set a combined tower at the target position.
+        It is free for the implementation whether "remove" means setting to `None` or just insert a unit tower of
+        height 0.
+        """
+        player1 = 1
+        player2 = 2
+        top_tower = Tower(structure=[player1])
+        lower_tower = Tower(structure=[player2])
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2, player1=player1, player2=player2)
+        gf.set_tower_at(from_pos, top_tower)
+        gf.set_tower_at(to_pos, lower_tower)
+
+        gf.make_move(from_pos, to_pos)
+
+        # check source position
+        tower_at_from_pos = gf.get_tower_at(from_pos)
+        self.assertTrue(tower_at_from_pos is None or tower_at_from_pos.height == 0,
+                        f"the source position {from_pos} should contain an empty or unit tower after move\
+                        but found {tower_at_from_pos}")
+
+        # check target position
+        expected_tower = Tower(structure=[player1, player2])
+        actual_tower = gf.get_tower_at(to_pos)
+        self.assertEqual(expected_tower, actual_tower, f"Expected combined tower ({expected_tower}) at {to_pos} after\
+                         move but found {actual_tower}")
 
 
 if __name__ == "__main__":
