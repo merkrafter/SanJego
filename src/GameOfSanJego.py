@@ -1,5 +1,5 @@
 import copy
-from typing import Optional, Iterator, Sequence
+from typing import Optional, Iterator, Sequence, Dict, Tuple
 
 from src import Searching
 
@@ -214,6 +214,51 @@ class GameField(object):
         self.set_tower_at(to_pos, top_tower)
         self.set_tower_at(from_pos, None)
         return True
+
+    @staticmethod
+    def setup_field(specs: Dict[Tuple[int, int], Tower], min_height: int = 1, min_width: int = 1) -> 'GameField':
+        """
+        Creates a game field that is filled with empty towers and specified towers at given (by `specs`) positions.
+        The returned field is at least height x width tiles in size. The actual size is computed from `specs`.
+        Similarly, the player ids are derived from the specified towers. This method currently follows the convention
+        that the smaller id corresponds to the first player (possibly causing an error if this is equal to the second
+        player's default value).
+        :param specs: a dict that specifies which towers to set on the field
+        :param min_height: the minimum height of the field
+        :param min_width: the minimum width of the field
+        :return: a GameField with the specified towers set
+        """
+        if min_height < 1 or min_width < 1:
+            raise ValueError(f"both min_height (given: {min_height}) and min_width ({min_width}) must be at least 1")
+
+        # update min values for field sizes and keep track of tower owners
+        players = set()
+        for pos in specs.keys():
+            min_height = max(min_height, pos[0] + 1)
+            min_width = max(min_width, pos[1] + 1)
+            players.add(specs[pos].owner)
+
+        # check player constellations
+        if len(players) == 0:
+            gf = GameField(height=min_height, width=min_width)
+        elif len(players) == 1:
+            gf = GameField(height=min_height, width=min_width, player1=players.pop())
+        elif len(players) == 2:
+            players = sorted(list(players))
+            gf = GameField(height=min_height, width=min_width, player1=players[0], player2=players[1])
+        else:
+            raise ValueError("too many tower owners specified")
+
+        # set the field with values
+        for x in range(min_height):
+            for y in range(min_width):
+                pos = (x, y)
+                if pos in specs:
+                    gf.set_tower_at(pos, specs[pos])
+                else:
+                    gf.set_tower_at(pos, None)
+
+        return gf
 
 
 class RuleSet(object):
