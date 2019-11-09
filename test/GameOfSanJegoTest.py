@@ -217,6 +217,15 @@ class TestGameField(TestCase):
                                      f"expected given player2 ({expected_player2}) after constructor call\
                                  but got {actual_player2}")
 
+    def test_players_at__init__are_equal(self) -> None:
+        """
+        Trying to initialize a game with two identical players should raise an Error to help finding bugs in the code.
+        """
+        player_id = 1
+        some_size = (2, 2)  # does not play a role for this test
+        with self.assertRaises(ValueError):
+            GameField(*some_size, player1=player_id, player2=player_id)
+
     def test_players_on_field(self) -> None:
         """
         The `GameField`'s board should contain (and *only* contain) the players specified at the constructor call.
