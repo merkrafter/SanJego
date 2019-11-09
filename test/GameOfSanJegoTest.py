@@ -1,7 +1,7 @@
 import unittest
 from unittest import TestCase
 
-from src.GameOfSanJego import Tower, GameField, RuleSet
+from src.GameOfSanJego import Tower, GameField, RuleSet, GameNode
 
 UNSAFE_MODE = False  # allows the execution of tests that contain eval expressions
 
@@ -610,6 +610,151 @@ class TestRuleSet(TestCase):
                 rs = RuleSet(gf)
                 self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
                                  f"should not allow move from {from_pos} -> {to_pos} (player may not move tower)")
+
+
+class TestGameNode(TestCase):
+    def test_is_terminal(self) -> None:
+        """
+        A game node should know that it is a terminal node.
+        """
+        gf = GameField(1, 1)
+        rs = RuleSet(gf)
+        node = GameNode(gf, rs)
+        self.assertTrue(node.is_terminal(), "this node should be recognized as a terminal one")
+
+    def test_is_not_terminal(self) -> None:
+        """
+        A game node should know that it is not a terminal node.
+        """
+        gf = GameField(1, 2)
+        rs = RuleSet(gf)
+        node = GameNode(gf, rs)
+        self.assertFalse(node.is_terminal(), "this node should be recognized as a terminal one")
+
+    def test_children_of_1x1_field(self) -> None:
+        """
+        A game node should not yield any children if it contains a 1x1 game field.
+        """
+        gf = GameField(1, 1)
+        rs = RuleSet(gf)
+        for is_max_player in [True, False]:
+            with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
+                node = GameNode(gf, rs, max_player=is_max_player)
+                children = list(node.children())
+                self.assertEqual(0, len(children), f"this node should have no children but found {children}")
+                self.assertTrue(node.is_terminal(), "this node should be recognized as a terminal one")
+
+    def test_children_without_allowed_move(self) -> None:
+        """
+        A game node without allowed moves should not have any children.
+        """
+        gf = GameField(3, 3)
+        # clear field first
+        for pos in [(x, y) for x in range(3) for y in range(3)]:
+            gf.set_tower_at(pos, None)
+
+        # set two towers that can not be moved onto each other
+        gf.set_tower_at((0, 0), Tower(owner=gf.player1))
+        gf.set_tower_at((2, 2), Tower(owner=gf.player2))
+
+        rs = RuleSet(gf)
+        for is_max_player in [True, False]:
+            with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
+                node = GameNode(gf, rs, max_player=is_max_player)
+                children = list(node.children())
+                self.assertEqual(0, len(children), f"this node should have no children but found {children}")
+                self.assertTrue(node.is_terminal(), "this node should be recognized as a terminal one")
+
+    def test_children_with_one_possible_move(self) -> None:
+        """
+        A game node with one possible move should only have a single child. There are no disallowed moves in this test
+        case.
+        """
+        gf = GameField(3, 3)
+        # clear field first
+        for pos in [(x, y) for x in range(3) for y in range(3)]:
+            gf.set_tower_at(pos, None)
+
+        # set two towers that can not be moved onto each other
+        gf.set_tower_at((0, 0), Tower(owner=gf.player1))
+        gf.set_tower_at((1, 1), Tower(owner=gf.player2))
+
+        rs = RuleSet(gf)
+        for is_max_player in [True, False]:
+            with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
+                node = GameNode(gf, rs, max_player=is_max_player)
+                children = list(node.children())
+                self.assertEqual(1, len(children), f"this node should have only one child but found {children}")
+                self.assertFalse(node.is_terminal(), "this node should not be recognized as a terminal one")
+
+    def test_children_with_one_allowed_move(self) -> None:
+        """
+        A game node with one allowed move should only have a single child. There are other moves that are disallowed
+        by the rule set in this test case.
+        """
+        gf = GameField(3, 3)
+        # clear field first
+        for pos in [(x, y) for x in range(3) for y in range(3)]:
+            gf.set_tower_at(pos, None)
+
+        # set tower constellation to allow one move:
+        # (0,0) -> (1,1)
+        gf.set_tower_at((0, 0), Tower(owner=gf.player1))
+        gf.set_tower_at((0, 1), Tower(structure=[gf.player1] + [gf.player2] * 2))  # player 1 cannot move here
+        gf.set_tower_at((1, 1), Tower(owner=gf.player2))
+
+        rs = RuleSet(gf)
+        node = GameNode(gf, rs)
+        children = list(node.children())
+        self.assertEqual(1, len(children), f"this node should have only one child but found {children}")
+        self.assertFalse(node.is_terminal(), "this node should not be recognized as a terminal one")
+
+    def test_children_with_two_allowed_moves(self) -> None:
+        """
+        A game node with two allowed moves should have two children. There is no other move that is disallowed
+        in this test case.
+        """
+        gf = GameField(3, 3)
+        # clear field first
+        for pos in [(x, y) for x in range(3) for y in range(3)]:
+            gf.set_tower_at(pos, None)
+
+        # set tower constellation to allow two moves:
+        # (1,1) -> (0,0) and
+        # (1,1) -> (0,1)
+        gf.set_tower_at((0, 0), Tower(owner=gf.player1))
+        gf.set_tower_at((0, 1), Tower(structure=[gf.player1] * 2 + [gf.player2]))  # player 2 cannot move this
+        gf.set_tower_at((1, 1), Tower(owner=gf.player2))
+
+        rs = RuleSet(gf)
+        node = GameNode(gf, rs, max_player=False)
+        children = list(node.children())
+        self.assertEqual(2, len(children), f"this node should have two children but found {children}")
+        self.assertFalse(node.is_terminal(), "this node should not be recognized as a terminal one")
+
+    def test_children_with_three_allowed_moves(self) -> None:
+        """
+        A game node with three allowed moves should have three children. There is no other move that is disallowed
+        in this test case.
+        """
+        gf = GameField(3, 3)
+        # clear field first
+        for pos in [(x, y) for x in range(3) for y in range(3)]:
+            gf.set_tower_at(pos, None)
+
+        # set tower constellation to allow three moves:
+        # (1,1) -> (0,0),
+        # (1,1) -> (0,1) and
+        # (0,1) -> (0,0)
+        gf.set_tower_at((0, 0), Tower(owner=gf.player1))
+        gf.set_tower_at((0, 1), Tower(structure=[gf.player1] + [gf.player2] * 2))  # note: player 2 can move this
+        gf.set_tower_at((1, 1), Tower(owner=gf.player2))
+
+        rs = RuleSet(gf)
+        node = GameNode(gf, rs, max_player=False)
+        children = list(node.children())
+        self.assertEqual(3, len(children), f"this node should have three children but found {children}")
+        self.assertFalse(node.is_terminal(), "this node should not be recognized as a terminal one")
 
 
 if __name__ == "__main__":
