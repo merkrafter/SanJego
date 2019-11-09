@@ -1,4 +1,5 @@
-from typing import List, Optional
+import copy
+from typing import List, Optional, Iterator
 
 
 class Tower(object):
@@ -275,6 +276,55 @@ class RuleSet(object):
 
         # check whether the player is allowed to move the tower at from_pos at all
         return self.player_may_move_tower(player, top_tower)
+
+
+class GameNode(Searching.Node):
+    """
+    Represents a state of San Jego. It provides methods to iterate over all descending game states, and receive the
+    value of this game state.
+    """
+
+    def __init__(self, game_field: GameField, rule_set: RuleSet, max_player: bool = True) -> None:
+        """
+        Creates a new `GameNode` by setting the game field, rule set and player given as arguments.
+        If `player` is omitted, it is set to `game_field`'s `player1` attribute.
+        :param game_field:
+        :param rule_set:
+        :param max_player: whether the maximising player moves next
+        """
+        # both parameters can not be None, because it is not clear what RuleSet to use in that case
+        self.game_field = game_field
+        self.rule_set = rule_set
+        self.max_player = max_player
+        if self.max_player:
+            self.player = self.game_field.player1
+        else:
+            self.player = self.game_field.player2
+
+    def children(self) -> Iterator['GameNode']:
+        """
+        Iterates over all possible/allowed following game states.
+        :return: iterator over all following game states
+        """
+        # iterate over any position on the field
+        for from_pos in [(x, y) for x in range(self.game_field.height) for y in range(self.game_field.width)]:
+
+            # iterate over the king's neighbourhood of from_pos...
+            for to_pos in [(x, y) for x in [from_pos[0] - 1, from_pos[0], from_pos[0] + 1]
+                           for y in [from_pos[1] - 1, from_pos[1], from_pos[1] + 1]]:
+
+                # ... and yield any allowed moves
+                if self.rule_set.allows_move(from_pos, to_pos, self.player):
+                    gf = copy.deepcopy(self.game_field)
+                    gf.make_move(from_pos, to_pos)
+                    yield GameNode(gf, RuleSet(gf), not self.max_player)
+
+    def value(self) -> int:
+        """
+        Computes the value of this `GameNode`, defined as the value of its `game_field`.
+        :return: value of this node's `game_field`
+        """
+        return self.game_field.value
 
 
 if __name__ == "__main__":
