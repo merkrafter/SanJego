@@ -108,6 +108,8 @@ class GameField(object):
         :param player1: ID of first player
         :param player2: ID of second player
         """
+        if player1 == player2:
+            raise ValueError(f"a game must be initialized with two distinct players but got {player1} and {player2}")
         self.height = height
         self.width = width
         self.player1 = player1
