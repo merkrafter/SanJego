@@ -1,30 +1,33 @@
+from typing import Any, Iterator
+
+
 class Node:
     """
     Represents a state of the game.
     It currently is only a dummy implementation.
     """
 
-    def __init__(self, item):
+    def __init__(self, item: Any) -> None:
         """
         Creates a new Node by setting the item.
         """
         self.item = item
 
-    def children(self):
+    def children(self) -> Iterator['Node']:
         """
         This method is a generator that yields each child that this node has.
         """
         yield Node(2 * self.item)
         yield Node(2 * self.item + 1)
 
-    def value(self):
+    def value(self) -> float:
         """
         Computes the value of this Node.
         :return: this Node's item
         """
         return self.item
 
-    def is_terminal(self):
+    def is_terminal(self) -> bool:
         """
         This method computes whether this Node has children.
         :return: False (as this is a dummy implementation)
@@ -32,7 +35,8 @@ class Node:
         return False
 
 
-def alpha_beta_search(node, depth, alpha=-float('inf'), beta=float('inf'), maximising_player=True):
+def alpha_beta_search(node: Node, depth: int, alpha: float = -float('inf'), beta: float = float('inf'),
+                      maximising_player: bool = True) -> float:
     """
     Calculates the game value from a given `node` searching at most `depth` levels utilizing a usual alpha beta pruning.
     :param node: a `Node` instance
