@@ -245,10 +245,10 @@ class RuleSet(object):
 
     def allows_move(self, from_pos: (int, int), to_pos: (int, int), player: int) -> bool:
         """
-        Decides whether the given tower is allowed to make the move given by the two positions on the board.
+        Decides whether the given player is allowed to make the move given by the two positions on the board.
         Using this rule set, a player is allowed to make that move if
         - he may move the tower at `from_pos` at all
-        - `to_pos` is in the king's/8's neighbourhood of `from_pos` and
+        - `to_pos` is in the king's/8's neighbourhood of `from_pos` **and**
         - there are towers at both positions that have different owners.
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
@@ -263,7 +263,7 @@ class RuleSet(object):
         # check whether there are towers on both positions
         top_tower = self.game_field.get_tower_at(from_pos)
         lower_tower = self.game_field.get_tower_at(to_pos)
-        if top_tower is None or lower_tower is None:
+        if top_tower is None or lower_tower is None or top_tower.height == 0 or lower_tower.height == 0:
             return False
 
         # check whether both towers are not identical and
