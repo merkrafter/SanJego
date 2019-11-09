@@ -1,6 +1,8 @@
 import copy
 from typing import List, Optional, Iterator
 
+from src import Searching
+
 
 class Tower(object):
     """
@@ -339,3 +341,7 @@ if __name__ == "__main__":
         import sys
 
         print(f"Could not make legal move (0,0) -> (0,1)", file=sys.stderr)
+
+    gn = GameNode(gf, rs)
+    value = Searching.alpha_beta_search(gn, 2, maximising_player=False)
+    print(f"value of this game from here: {value}")
