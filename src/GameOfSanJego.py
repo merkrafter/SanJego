@@ -1,5 +1,5 @@
 import copy
-from typing import List, Optional, Iterator
+from typing import Optional, Iterator, Sequence
 
 from src import Searching
 
@@ -11,7 +11,7 @@ class Tower(object):
     Each tower as an owner that is determined by the topmost brick.
     """
 
-    def __init__(self, owner: Optional[int] = None, structure: List[int] = None):
+    def __init__(self, owner: Optional[int] = None, structure: Optional[Sequence[int]] = None):
         """
         Creates a new Tower based on the owner and an optional structure (for debugging purposes mainly).
         If no `structure` is given, a new Tower of height one with one brick (the owner) is created.
