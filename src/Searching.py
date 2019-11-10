@@ -27,13 +27,6 @@ class Node:
         """
         return self.item
 
-    def is_terminal(self) -> bool:
-        """
-        This method computes whether this Node has children.
-        :return: False (as this is a dummy implementation)
-        """
-        return False
-
 
 def alpha_beta_search(node: Node, depth: int, alpha: float = -float('inf'), beta: float = float('inf'),
                       maximising_player: bool = True) -> float:

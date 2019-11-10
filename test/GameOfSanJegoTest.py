@@ -613,24 +613,6 @@ class TestRuleSet(TestCase):
 
 
 class TestGameNode(TestCase):
-    def test_is_terminal(self) -> None:
-        """
-        A game node should know that it is a terminal node.
-        """
-        gf = GameField(1, 1)
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs)
-        self.assertTrue(node.is_terminal(), "this node should be recognized as a terminal one")
-
-    def test_is_not_terminal(self) -> None:
-        """
-        A game node should know that it is not a terminal node.
-        """
-        gf = GameField(1, 2)
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs)
-        self.assertFalse(node.is_terminal(), "this node should be recognized as a terminal one")
-
     def test_children_of_1x1_field(self) -> None:
         """
         A game node should not yield any children if it contains a 1x1 game field.
@@ -642,7 +624,6 @@ class TestGameNode(TestCase):
                 node = GameNode(gf, rs, max_player=is_max_player)
                 children = list(node.children())
                 self.assertEqual(0, len(children), f"this node should have no children but found {children}")
-                self.assertTrue(node.is_terminal(), "this node should be recognized as a terminal one")
 
     def test_children_without_allowed_move(self) -> None:
         """
@@ -667,7 +648,6 @@ class TestGameNode(TestCase):
                 node = GameNode(gf, rs, max_player=is_max_player)
                 children = list(node.children())
                 self.assertEqual(0, len(children), f"this node should have no children but found {children}")
-                self.assertTrue(node.is_terminal(), "this node should be recognized as a terminal one")
 
     def test_children_with_one_possible_move(self) -> None:
         """
@@ -693,7 +673,6 @@ class TestGameNode(TestCase):
                 node = GameNode(gf, rs, max_player=is_max_player)
                 children = list(node.children())
                 self.assertEqual(1, len(children), f"this node should have only one child but found {children}")
-                self.assertFalse(node.is_terminal(), "this node should not be recognized as a terminal one")
 
     def test_children_with_one_allowed_move(self) -> None:
         """
@@ -715,7 +694,6 @@ class TestGameNode(TestCase):
         node = GameNode(gf, rs)
         children = list(node.children())
         self.assertEqual(1, len(children), f"this node should have only one child but found {children}")
-        self.assertFalse(node.is_terminal(), "this node should not be recognized as a terminal one")
 
     def test_children_with_two_allowed_moves(self) -> None:
         """
@@ -738,7 +716,6 @@ class TestGameNode(TestCase):
         node = GameNode(gf, rs, max_player=False)
         children = list(node.children())
         self.assertEqual(2, len(children), f"this node should have two children but found {children}")
-        self.assertFalse(node.is_terminal(), "this node should not be recognized as a terminal one")
 
     def test_children_with_three_allowed_moves(self) -> None:
         """
@@ -762,7 +739,6 @@ class TestGameNode(TestCase):
         node = GameNode(gf, rs, max_player=False)
         children = list(node.children())
         self.assertEqual(3, len(children), f"this node should have three children but found {children}")
-        self.assertFalse(node.is_terminal(), "this node should not be recognized as a terminal one")
 
 
 if __name__ == "__main__":
