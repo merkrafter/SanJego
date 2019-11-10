@@ -260,6 +260,22 @@ class GameField(object):
 
         return gf
 
+    def __str__(self) -> str:
+        """
+        Returns a string representation of this game field that is dynamically aligned with the size of the towers.
+        :return: a string representation of the game field
+        """
+        string_repr = ""
+        max_tower_height = max(
+            map(lambda t: t.height, self.field)) * 3  # x3 because of commas and spaces and +2 because of []
+        for x in range(self.height):
+            towers_in_that_row = ""
+            for y in range(self.width):
+                tower_str = self.get_tower_at((x, y)).__str__()
+                towers_in_that_row += "{0:>{1}} | ".format(tower_str, max_tower_height)
+            string_repr += towers_in_that_row + '\n'
+        return string_repr
+
 
 class RuleSet(object):
     """
@@ -372,6 +388,13 @@ class GameNode(Searching.Node):
         :return: value of this node's `game_field`
         """
         return self.game_field.value
+
+    def __str__(self) -> str:
+        """
+        Returns a string representation of this game node that contains the player to move and the game field string.
+        :return: a string representation of this game node
+        """
+        return f"turn of player {self.player}\n" + self.game_field.__str__()
 
 
 if __name__ == "__main__":
