@@ -122,7 +122,7 @@ class TestSanJego(unittest.TestCase):
             (1, 1): Tower(owner=player2)
         })
 
-        expected_values = (-4, 4)  # (min starts, max starts)
+        expected_values = (-3, 3)  # (min starts, max starts)
         for maximising_player in [True, False]:
             rs = RuleSet(gf)
             node = GameNode(gf, rs, max_player=maximising_player)
