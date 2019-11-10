@@ -648,14 +648,18 @@ class TestGameNode(TestCase):
         """
         A game node without allowed moves should not have any children.
         """
+        player1 = 0
+        player2 = 1
         gf = GameField(3, 3)
         # clear field first
         for pos in [(x, y) for x in range(3) for y in range(3)]:
             gf.set_tower_at(pos, None)
 
         # set two towers that can not be moved onto each other
-        gf.set_tower_at((0, 0), Tower(owner=gf.player1))
-        gf.set_tower_at((2, 2), Tower(owner=gf.player2))
+        gf = GameField.setup_field({
+            (0, 0): Tower(owner=player1),
+            (2, 2): Tower(owner=player2)
+        })
 
         rs = RuleSet(gf)
         for is_max_player in [True, False]:
@@ -670,14 +674,18 @@ class TestGameNode(TestCase):
         A game node with one possible move should only have a single child. There are no disallowed moves in this test
         case.
         """
+        player1 = 0
+        player2 = 1
         gf = GameField(3, 3)
         # clear field first
         for pos in [(x, y) for x in range(3) for y in range(3)]:
             gf.set_tower_at(pos, None)
 
         # set two towers that can not be moved onto each other
-        gf.set_tower_at((0, 0), Tower(owner=gf.player1))
-        gf.set_tower_at((1, 1), Tower(owner=gf.player2))
+        gf = GameField.setup_field({
+            (0, 0): Tower(owner=player1),
+            (1, 1): Tower(owner=player2)
+        })
 
         rs = RuleSet(gf)
         for is_max_player in [True, False]:
@@ -692,16 +700,16 @@ class TestGameNode(TestCase):
         A game node with one allowed move should only have a single child. There are other moves that are disallowed
         by the rule set in this test case.
         """
-        gf = GameField(3, 3)
-        # clear field first
-        for pos in [(x, y) for x in range(3) for y in range(3)]:
-            gf.set_tower_at(pos, None)
+        player1 = 0
+        player2 = 1
 
         # set tower constellation to allow one move:
         # (0,0) -> (1,1)
-        gf.set_tower_at((0, 0), Tower(owner=gf.player1))
-        gf.set_tower_at((0, 1), Tower(structure=[gf.player1] + [gf.player2] * 2))  # player 1 cannot move here
-        gf.set_tower_at((1, 1), Tower(owner=gf.player2))
+        gf = GameField.setup_field({
+            (0, 0): Tower(owner=player1),
+            (0, 1): Tower(structure=[player1] + [player2] * 2),  # player 1 can not move here
+            (1, 1): Tower(owner=player2)
+        })
 
         rs = RuleSet(gf)
         node = GameNode(gf, rs)
@@ -714,17 +722,17 @@ class TestGameNode(TestCase):
         A game node with two allowed moves should have two children. There is no other move that is disallowed
         in this test case.
         """
-        gf = GameField(3, 3)
-        # clear field first
-        for pos in [(x, y) for x in range(3) for y in range(3)]:
-            gf.set_tower_at(pos, None)
+        player1 = 0
+        player2 = 1
 
         # set tower constellation to allow two moves:
         # (1,1) -> (0,0) and
         # (1,1) -> (0,1)
-        gf.set_tower_at((0, 0), Tower(owner=gf.player1))
-        gf.set_tower_at((0, 1), Tower(structure=[gf.player1] * 2 + [gf.player2]))  # player 2 cannot move this
-        gf.set_tower_at((1, 1), Tower(owner=gf.player2))
+        gf = GameField.setup_field({
+            (0, 0): Tower(owner=player1),
+            (0, 1): Tower(structure=[player1] * 2 + [player2]),  # player 2 can not move this
+            (1, 1): Tower(owner=player2)
+        })
 
         rs = RuleSet(gf)
         node = GameNode(gf, rs, max_player=False)
@@ -737,18 +745,18 @@ class TestGameNode(TestCase):
         A game node with three allowed moves should have three children. There is no other move that is disallowed
         in this test case.
         """
-        gf = GameField(3, 3)
-        # clear field first
-        for pos in [(x, y) for x in range(3) for y in range(3)]:
-            gf.set_tower_at(pos, None)
+        player1 = 0
+        player2 = 1
 
         # set tower constellation to allow three moves:
         # (1,1) -> (0,0),
         # (1,1) -> (0,1) and
         # (0,1) -> (0,0)
-        gf.set_tower_at((0, 0), Tower(owner=gf.player1))
-        gf.set_tower_at((0, 1), Tower(structure=[gf.player1] + [gf.player2] * 2))  # note: player 2 can move this
-        gf.set_tower_at((1, 1), Tower(owner=gf.player2))
+        gf = GameField.setup_field({
+            (0, 0): Tower(owner=player1),
+            (0, 1): Tower(structure=[player1] + [player2] * 2),  # note: player 2 can move this
+            (1, 1): Tower(owner=player2)
+        })
 
         rs = RuleSet(gf)
         node = GameNode(gf, rs, max_player=False)
