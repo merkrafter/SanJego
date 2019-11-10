@@ -444,6 +444,34 @@ class TestGameField(TestCase):
         self.assertEqual(expected_tower, actual_tower, f"Expected combined tower ({expected_tower}) at {to_pos} after\
                          move but found {actual_tower}")
 
+    def test__eq__(self) -> None:
+        """
+        Two game fields should be compared semantically, that is, be equal if all of their towers are equal.
+        There is no need for identity.
+        """
+        gf1 = GameField.setup_field({
+            (0, 0): Tower(owner=0),
+            (1, 1): Tower(owner=1)
+        })
+        gf2 = GameField.setup_field({
+            (0, 0): Tower(owner=0),
+            (1, 1): Tower(owner=1)
+        })
+        self.assertEqual(gf1, gf2, "both game fields should be considered equal")
+
+    def test_not__eq__(self) -> None:
+        """
+        Two game fields should not be considered equal if their towers differ.
+        """
+        gf1 = GameField.setup_field({
+            (0, 0): Tower(owner=0),
+            (1, 1): Tower(owner=1)
+        })
+        gf2 = GameField.setup_field({
+            (0, 0): Tower(owner=0),
+        })
+        self.assertNotEqual(gf1, gf2, "both game fields should not be considered equal")
+
 
 class TestRuleSet(TestCase):
     def test_player_may_move_tower_with_height_1(self) -> None:
