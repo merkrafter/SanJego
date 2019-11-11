@@ -132,6 +132,30 @@ class TestSanJego(unittest.TestCase):
                     actual_value = alpha_beta_search(node, depth=depth, maximising_player=maximising_player)
                     self.assertEqual(expected_value, actual_value, "wrongly calculated game value")
 
+    def test_skipping_move(self) -> None:
+        """
+        The alpha beta search method should handle skipping moves correctly.
+        A move must be skipped, if there is no allowed move for a player, but the opposing player may still move.
+        """
+        player1 = 0
+        player2 = 1
+        maximising_player = True
+
+        # [0] | [0, 1, 1] | [1]
+        gf = GameField.setup_field({
+            (0, 0): Tower(owner=player1),  # (0,0) -> (0,1) is illegal
+            (0, 1): Tower(structure=[player1] + [player2] * 2),  # player1 may not move this
+            (0, 2): Tower(owner=player2)
+        })
+        self.assertTrue(maximising_player, "misconfigured test: it should be player1's (max) move")
+
+        expected_value = 4
+        rs = RuleSet(gf)
+        node = GameNode(gf, rs, max_player=maximising_player)
+        actual_value = alpha_beta_search(node, depth=2, maximising_player=maximising_player)  # depth 2 is enough
+        self.assertEqual(expected_value, actual_value,
+                         f"expected a game value of {expected_value} but got {actual_value}")
+
 
 if __name__ == '__main__':
     unittest.main()

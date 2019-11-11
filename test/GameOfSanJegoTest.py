@@ -768,6 +768,28 @@ class TestGameNode(TestCase):
         children = list(node.children())
         self.assertEqual(3, len(children), f"this node should have three children but found {children}")
 
+    def test_considers_skipping(self) -> None:
+        """
+        The game node should consider skipping a move, if there is no allowed move for that active player but the opponent
+        can still move.
+        """
+        player1 = 0
+        player2 = 1
+        maximising_player = True
+
+        # [0] | [0, 1, 1] | [1]
+        gf = GameField.setup_field({
+            (0, 0): Tower(owner=player1),  # (0,0) -> (0,1) is illegal
+            (0, 1): Tower(structure=[player1] + [player2] * 2),  # player1 may not move this
+            (0, 2): Tower(owner=player2)
+        })
+
+        rs = RuleSet(gf)
+        node = GameNode(gf, rs, max_player=maximising_player)
+        children = list(node.children())
+        self.assertEqual(1, len(children), f"there should be exactly 1 move (skip), but found {len(children)}")
+        self.assertEqual(gf, children[0].game_field, "skipping should not alter the game field")
+
 
 if __name__ == "__main__":
     import sys
