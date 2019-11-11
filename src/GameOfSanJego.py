@@ -153,6 +153,18 @@ class GameField(object):
         """
         return int(self.value)
 
+    def __eq__(self, other: 'GameField') -> bool:
+        """
+        Compares this game field with `other` from a logical point of view. That is, two game fields are logically
+        equal, if they have the same underlying `field`, `player1` and `player2` attributes.
+        Note that the behavior therefore depends (partially) on the type of the underlying `field`.
+        :param other: `GameField` instance to compare `self` with
+        :return: whether both game fields are logically equal
+        """
+        return hasattr(other, "field") and other.field == self.field and \
+               hasattr(other, "player1") and other.player1 == self.player1 and \
+               hasattr(other, "player2") and other.player2 == self.player2
+
     def get_tower_at(self, pos: (int, int)) -> Optional[Tower]:
         """
         Returns the tower at the given position. Can be `None` if either the `pos` is outside the game field or
