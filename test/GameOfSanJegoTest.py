@@ -643,7 +643,7 @@ class TestRuleSet(TestCase):
 class TestGameNode(TestCase):
     def test_children_of_1x1_field(self) -> None:
         """
-        A game node should not yield any children if it contains a 1x1 game field.
+        A game node should not yield any real children (that is: only skipping) if it contains a 1x1 game field.
         """
         gf = GameField(1, 1)
         rs = RuleSet(gf)
@@ -651,11 +651,15 @@ class TestGameNode(TestCase):
             with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
                 node = GameNode(gf, rs, max_player=is_max_player)
                 children = list(node.children())
-                self.assertEqual(0, len(children), f"this node should have no children but found {children}")
+                self.assertEqual(1, len(children), f"there should be exactly 1 move (skip), but found {len(children)}")
+                child = children[0]
+                self.assertEqual(gf, child.game_field, "skipping should not alter the game field")
+                grandchildren = list(child.children())
+                self.assertEqual(0, len(grandchildren), f"there should be no moves, but found {grandchildren}")
 
     def test_children_without_allowed_move(self) -> None:
         """
-        A game node without allowed moves should not have any children.
+        A game node without allowed moves should not have any real children (that is: only skipping).
         """
         player1 = 0
         player2 = 1
@@ -675,7 +679,11 @@ class TestGameNode(TestCase):
             with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
                 node = GameNode(gf, rs, max_player=is_max_player)
                 children = list(node.children())
-                self.assertEqual(0, len(children), f"this node should have no children but found {children}")
+                self.assertEqual(1, len(children), f"there should be exactly 1 move (skip), but found {len(children)}")
+                child = children[0]
+                self.assertEqual(gf, child.game_field, "skipping should not alter the game field")
+                grandchildren = list(child.children())
+                self.assertEqual(0, len(grandchildren), f"there should be no moves, but found {grandchildren}")
 
     def test_children_with_one_possible_move(self) -> None:
         """
@@ -770,8 +778,8 @@ class TestGameNode(TestCase):
 
     def test_considers_skipping(self) -> None:
         """
-        The game node should consider skipping a move, if there is no allowed move for that active player but the opponent
-        can still move.
+        The game node should consider skipping a move, if there is no allowed move for that active player but the
+        opponent can still move.
         """
         player1 = 0
         player2 = 1

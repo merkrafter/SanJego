@@ -56,7 +56,9 @@ class TestSanJego(unittest.TestCase):
             rs = RuleSet(gf)
             node = GameNode(gf, rs, max_player=maximising_player)
             expected_value = node.value()
-            for depth in range(5):
+            # depth 0: this node; depth 1: skipped move;
+            # depth 2: move of respective opponent that would change game value, hence not covered in this test
+            for depth in range(2):
                 with self.subTest(f"depth {depth} as {('min', 'max')[maximising_player]}"):
                     actual_value = alpha_beta_search(node, depth=depth, maximising_player=maximising_player)
                     self.assertEqual(expected_value, actual_value, "wrongly calculated game value")
@@ -152,7 +154,7 @@ class TestSanJego(unittest.TestCase):
         expected_value = 4
         rs = RuleSet(gf)
         node = GameNode(gf, rs, max_player=maximising_player)
-        actual_value = alpha_beta_search(node, depth=2, maximising_player=maximising_player)  # depth 2 is enough
+        actual_value = alpha_beta_search(node, depth=3, maximising_player=maximising_player)  # depth 3 is enough
         self.assertEqual(expected_value, actual_value,
                          f"expected a game value of {expected_value} but got {actual_value}")
 
