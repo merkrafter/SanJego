@@ -75,8 +75,7 @@ class Tower(object):
         :param other: `Tower` instance to compare `self` with
         :return: whether both towers are logically equal
         """
-        return hasattr(other, "owner") and other.owner == self.owner and \
-               hasattr(other, "structure") and other.structure == self.structure
+        return hasattr(other, "structure") and other.structure == self.structure
 
     def __repr__(self) -> str:
         """
