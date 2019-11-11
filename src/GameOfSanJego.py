@@ -358,15 +358,18 @@ class GameNode(Searching.Node):
     value of this game state.
     """
 
-    def __init__(self, game_field: GameField, rule_set: RuleSet, max_player: bool = True) -> None:
+    def __init__(self, game_field: GameField, rule_set: RuleSet, max_player: bool = True,
+                 skipped_before: bool = False) -> None:
         """
         Creates a new `GameNode` by setting the game field, rule set and player given as arguments.
         If `player` is omitted, it is set to `game_field`'s `player1` attribute.
+        :param skipped_before: for internal use only; is `True` if this is a skipping move
         :param game_field:
         :param rule_set:
         :param max_player: whether the maximising player moves next
         """
         # both parameters can not be None, because it is not clear what RuleSet to use in that case
+        self.skipped_before = skipped_before
         self.game_field = game_field
         self.rule_set = rule_set
         self.max_player = max_player
@@ -380,6 +383,7 @@ class GameNode(Searching.Node):
         Iterates over all possible/allowed following game states.
         :return: iterator over all following game states
         """
+        count = 0
         # iterate over any position on the field
         for from_pos in [(x, y) for x in range(self.game_field.height) for y in range(self.game_field.width)]:
 
@@ -391,7 +395,15 @@ class GameNode(Searching.Node):
                 if self.rule_set.allows_move(from_pos, to_pos, self.player):
                     gf = copy.deepcopy(self.game_field)
                     gf.make_move(from_pos, to_pos)
-                    yield GameNode(gf, RuleSet(gf), not self.max_player)
+                    count += 1
+                    yield GameNode(gf, RuleSet(gf), not self.max_player, skipped_before=False)
+        if count == 0 and not self.skipped_before:  # game ends if both players can not move
+            # maybe the skipping move can be done implicitly like so:
+            # for child in GameNode(gf, RuleSet(gf), not self.max_player, skipped_before=True).children():
+            #    yield child
+            # however, this could conflict with the alpha beta search (moving player)
+            gf = copy.deepcopy(self.game_field)
+            yield GameNode(gf, RuleSet(gf), not self.max_player, skipped_before=True)
 
     def value(self) -> int:
         """
