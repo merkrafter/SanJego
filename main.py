@@ -8,16 +8,22 @@ ex = Experiment()
 
 @ex.config
 def config():
+    # game relevant
+    height = 1
+    width = 1
+    max_player_starts = True
     max_depth = float('inf')
+
+    # additional configs
     verbose = False
 
 
 @ex.automain
-def main(height: int, width: int, max_depth, verbose):
+def main(height: int, width: int, max_player_starts: bool, max_depth: int, verbose: bool):
     # create the necessary objects
     game_field = GameField(height=height, width=width)
     rule_set = RuleSet(game_field)
-    start_node = GameNode(game_field, rule_set)
+    start_node = GameNode(game_field, rule_set, max_player=max_player_starts)
 
     # Each time a player moves, the number of towers on the field is reduced by 1.
     # If in the worst case only one player is able to move, the game is over in at most 2*size_of_the_field moves.
