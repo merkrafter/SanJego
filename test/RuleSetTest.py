@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from src.GameOfSanJego import GameField, Tower
-from src.Rulesets import BaseRuleSet
+from src.Rulesets import BaseRuleSet, KingsRuleSet, MajorityRuleSet, FreeRuleSet, MoveOnOpposingOnlyRuleSet
 
 
 class TestBaseRuleSet(TestCase):
@@ -89,3 +89,150 @@ class TestBaseRuleSet(TestCase):
                     with self.subTest(f"{from_pos} -> {to_pos}"):
                         self.assertFalse(rs.allows_move(from_pos, to_pos, some_player),
                                          f"should not allow move {from_pos} -> {to_pos}")
+
+    def test_does_not_allow_moving_opposing_towers(self) -> None:
+        """
+        The rule set should not allow moving opposing towers.
+        """
+        pos_of_p1_tower = (0, 0)
+        pos_of_p2_tower = (0, 1)
+        gf = GameField.setup_field({
+            pos_of_p1_tower: Tower(owner=0),
+            pos_of_p2_tower: Tower(owner=1)
+        })
+        rs = BaseRuleSet(gf)
+
+        self.assertFalse(rs.allows_move(from_pos=pos_of_p1_tower, to_pos=pos_of_p2_tower, player=gf.player2),
+                         "player 2 may not move player 1's tower")
+
+        self.assertFalse(rs.allows_move(from_pos=pos_of_p2_tower, to_pos=pos_of_p1_tower, player=gf.player1),
+                         "player 1 may not move player 2's tower")
+
+    def test_player_may_move_tower_with_height_1(self) -> None:
+        """
+        A player should be allowed to move a tower if he owns the only brick.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        player1 = 1
+        some_other_player = 2  # not relevant for this test
+        self.assertNotEqual(player1, some_other_player, "misconfigured test: both player IDs should be different")
+
+        subject_tower = Tower(structure=[player1])
+
+        gf = GameField.setup_field({
+            from_pos: subject_tower,
+            to_pos: Tower(owner=some_other_player)
+        })
+
+        # actual test case
+        rule_set = BaseRuleSet(gf)
+        self.assertTrue(rule_set.allows_move(from_pos, to_pos, player1),
+                        f"player {player1} should be able to move tower {subject_tower}")
+        self.assertFalse(rule_set.allows_move(from_pos, to_pos, some_other_player),
+                         f"player {some_other_player} should not be able to move tower {subject_tower}")
+
+    def test_player_may_move_tower_with_half_share(self) -> None:
+        """
+        Both players should be allowed to move a tower, even if they own only 50% of bricks.
+        """
+        from itertools import permutations
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        player1 = 1
+        player2 = 2
+        self.assertNotEqual(player1, player2, "misconfigured test: both player IDs should be different")
+
+        # multiple tests with shuffled structure
+        for structure in permutations([player1] * 2 + [player2] * 2):
+            tower = Tower(structure=structure)
+            with self.subTest(f"test tower {tower}"):
+                gf = GameField(1, 2, player1=player1, player2=player2)
+                gf.set_tower_at(from_pos, tower)
+                rs = MajorityRuleSet(gf)
+
+                # makes sure the tower at to_pos is an opposing tower
+                gf.set_tower_at(to_pos, Tower(owner=player2))
+                self.assertTrue(rs.allows_move(from_pos, to_pos, player1),
+                                f"player {player1} should be able to move the tower {tower}")
+
+                # makes sure the tower at to_pos is an opposing tower
+                gf.set_tower_at(to_pos, Tower(owner=player2))
+                self.assertTrue(rs.allows_move(from_pos, to_pos, player2),
+                                f"player {player2} should be able to move the tower {tower}")
+
+    def test_player_may_move_tower_with_majority(self) -> None:
+        """
+        A player should be allowed to move a tower if he owns the majority of the bricks, even if the is not the owner.
+        """
+        from itertools import permutations
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        player1 = 1
+        some_other_player = 2  # not relevant for this test
+        self.assertNotEqual(player1, some_other_player, "misconfigured test: both player IDs should be different")
+
+        # multiple tests with shuffled structure while a clear majority of player1 is maintained
+        for structure in permutations([player1] * 2 + [some_other_player]):
+            tower = Tower(structure=structure)
+            with self.subTest(f"test tower {tower}"):
+                gf = GameField.setup_field({
+                    from_pos: tower,
+                    to_pos: Tower(owner=some_other_player)
+                })
+                rs = BaseRuleSet(gf)
+                self.assertTrue(rs.allows_move(from_pos, to_pos, player1),
+                                f"player {player1} should be able to move the tower {tower}")
+                self.assertFalse(rs.allows_move(from_pos, to_pos, some_other_player),
+                                 f"player {some_other_player} should not be able to move the tower {tower}")
+
+    def test_does_not_allow_move_with_same_owners(self) -> None:
+        """
+        The rule set should not allow moving a tower onto another with the same owner.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2)
+        player1 = gf.player1
+        gf.set_tower_at(pos=from_pos, tower=Tower(owner=player1))
+        gf.set_tower_at(pos=to_pos, tower=Tower(owner=player1))
+
+        rs = BaseRuleSet(gf)
+        self.assertFalse(rs.allows_move(from_pos, to_pos, player1), "should not allow move when both owners are equal")
+
+    def test_does_not_allow_moving_too_far(self) -> None:
+        """
+        The rule set should not allow moving a tower more than one tile (either horizontally, vertically or
+        diagonally).
+        """
+        from_pos = (2, 2)
+        positions = [(x, y) for x in [0, 2, 4] for y in [0, 2, 4, 5, 6]]
+        for to_pos in positions:
+            with self.subTest(f"{from_pos} -> {to_pos}"):
+                gf = GameField(5, 7)
+                player1 = gf.player1
+                gf.set_tower_at(pos=from_pos, tower=Tower(owner=player1))
+                gf.set_tower_at(pos=to_pos, tower=Tower(owner=player1))
+
+                rs = BaseRuleSet(gf)
+                self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
+                                 f"should not allow move from {from_pos} -> {to_pos} (too far)")
+
+    def test_does_not_allow_moving_for_wrong_player(self) -> None:
+        """
+        The rule set should not allow making a move with a tower that the player is not allowed to move at all.
+        """
+        # TODO review this test case
+        from_pos = (1, 1)
+        # all fields around from_pos
+        positions = [(x, y) for x in [0, 1, 2] for y in [0, 1, 2] if not (x, y) == from_pos]
+        for to_pos in positions:
+            with self.subTest(f"{from_pos} -> {to_pos}"):
+                gf = GameField(3, 3)
+                player1 = gf.player1
+                player2 = gf.player2
+                gf.set_tower_at(pos=from_pos, tower=Tower(structure=[player1, player2, player2]))  # p1 cannot move
+                gf.set_tower_at(pos=to_pos, tower=Tower(owner=player2))
+                rs = MajorityRuleSet(gf)
+                self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
+                                 f"should not allow move from {from_pos} -> {to_pos} (player may not move tower)")
