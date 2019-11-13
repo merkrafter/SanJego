@@ -87,3 +87,26 @@ class KingsRuleSet(BaseRuleSet):
             return False
 
         return True
+
+
+class MoveOnOpposingOnlyRuleSet(BaseRuleSet):
+    """
+    Using this rule set, own towers may only be moved on top of opposing towers.
+    """
+
+    def allows_move(self, from_pos, to_pos, player):
+        """
+        Allows players to move a tower only on top of opposing towers.
+        :param from_pos: specifies the tower to move
+        :param to_pos: specifies the tower to move on top of
+        :param player: ID of a player
+        :return: whether the player is allowed to make this move given this rule set
+        """
+        if not super().allows_move(from_pos, to_pos, player):
+            return False
+
+        # the above line ensures that there actually are towers at the given positions
+        if self.game_field.get_tower_at(from_pos).owner == self.game_field.get_tower_at(to_pos).owner:
+            return False
+
+        return True
