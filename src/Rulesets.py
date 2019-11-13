@@ -1,6 +1,6 @@
-from typing import Tuple
+from typing import Tuple, Optional
 
-from src.GameOfSanJego import GameField
+from src.GameOfSanJego import GameField, Tower
 
 
 class BaseRuleSet(object):
@@ -15,29 +15,56 @@ class BaseRuleSet(object):
         """
         self.game_field = game_field
 
+    def check_quad_neighbourhood(self, from_pos: Tuple[int, int], to_pos: Tuple[int, int]) -> bool:
+        """
+        Check whether both positions lie in a quad neighbourhood of each other.
+        :param from_pos: specifies the tower to move
+        :param to_pos: specifies the tower to move on top of
+        :return: whether both positions lie in a quad neighbourhood of each other
+        """
+        # check movement rule (quad neighbourhood) using manhattan distance
+        return abs(from_pos[0] - to_pos[0]) + abs(from_pos[1] - to_pos[1]) <= 1
+
+    def check_player_is_owner(self, tower: Tower, player: int) -> bool:
+        """
+        Check whether the given player is the owner of the tower.
+        :param tower: the tower to check
+        :param player: the player that should be the owner of the tower
+        :return: whether the given player is the owner of the tower
+        """
+        return tower.owner == player
+
     def allows_move(self, from_pos: Tuple[int, int], to_pos: Tuple[int, int], player: int) -> bool:
         """
         Decides whether the given player is allowed to make the move given by the two positions on the board.
         This basic implementation allows any two towers to be moved on top of each other if their positions meet either
-        vertically or horizontally (quad neighbourhood).
+        vertically or horizontally (quad neighbourhood) and the moved tower is owned by `player`.
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :param player: ID of a player that is registered in the `GameField` instance of this `RuleSet`
         :return: whether the player is allowed to make this move given this rule set
         """
         # perform basic checks
-        if not self.basically_allows_move(from_pos, to_pos):
+        towers = self.basically_allows_move(from_pos, to_pos)
+        if not towers:
             return False
 
-        # check movement rule (quad neighbourhood) using manhattan distance
-        if abs(from_pos[0] - to_pos[0]) + abs(from_pos[1] - to_pos[1]) > 1:
+        # check whether the tower-to-move belongs to the player that wants to move it
+        if not self.check_player_is_owner(towers[0], player):
+            return False
+
+        # check whether both lie in a quad neighbourhood of each other
+        if not self.check_quad_neighbourhood(from_pos, to_pos):
             return False
 
         return True
 
-    def basically_allows_move(self, from_pos: Tuple[int, int], to_pos: Tuple[int, int]) -> bool:
+    def basically_allows_move(self, from_pos: Tuple[int, int], to_pos: Tuple[int, int]) -> \
+            Optional[Tuple[Tower, Tower]]:
+
         """
-        This method performs basic checks on the move that likely apply to all rule sets.
+        This method performs basic checks on the move that likely apply to all rule sets and returns both towers at
+        the given positions in case of success (for convenience reasons).
         In detail, it checks whether:
          - both positions are not `None`
          - both positions are different from each other
@@ -45,24 +72,24 @@ class BaseRuleSet(object):
          - there are towers on both positions
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
-        :return: whether the above conditions are fulfilled by the given positions
+        :return: both towers at the given positions in case of success and `None` else
         """
         # check whether both positions are not None
         if from_pos is None or to_pos is None:
-            return False
+            return None
 
         # check whether both positions are different from each other
         if from_pos == to_pos:
-            return False
+            return None
 
         # check whether both positions are on the board and
         # check whether there are towers on both positions
         top_tower = self.game_field.get_tower_at(from_pos)  # would return None if not on the board
         lower_tower = self.game_field.get_tower_at(to_pos)
         if top_tower is None or lower_tower is None or top_tower.height == 0 or lower_tower.height == 0:
-            return False
+            return None
 
-        return True
+        return top_tower, lower_tower
 
 
 class KingsRuleSet(BaseRuleSet):
@@ -79,7 +106,11 @@ class KingsRuleSet(BaseRuleSet):
         :param player: ID of a player
         :return: whether the player is allowed to make this move given this rule set
         """
-        if not self.basically_allows_move(from_pos, to_pos):
+        towers = self.basically_allows_move(from_pos, to_pos)
+        if not towers:
+            return False
+
+        if not self.check_player_is_owner(towers[0], player):
             return False
 
         # both coordinates may differ by at most 1
@@ -125,11 +156,15 @@ class MajorityRuleSet(BaseRuleSet):
         :param player: ID of a player
         :return: whether the player is allowed to make this move given this rule set
         """
-        if not super().allows_move(from_pos, to_pos, player):
+        towers = self.basically_allows_move(from_pos, to_pos)
+        if not towers:
+            return False
+
+        if not self.check_quad_neighbourhood(from_pos, to_pos):
             return False
 
         # the above line ensures that there actually are towers at the given positions
-        tower = self.game_field.get_tower_at(from_pos)
+        tower = towers[0]
         share_player: int = sum(map(lambda brick: brick == player, tower.structure))
         if (share_player << 1) < tower.height:  # in other words: if share < tower.height/2
             return False
