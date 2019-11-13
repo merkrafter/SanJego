@@ -135,3 +135,27 @@ class MajorityRuleSet(BaseRuleSet):
             return False
 
         return True
+
+
+class FreeRuleSet(BaseRuleSet):
+    """
+    Using this rule set, a player may move any tower.
+    """
+
+    def allows_move(self, from_pos, to_pos, player):
+        """
+        Allows players to move any tower on the field.
+        :param from_pos: specifies the tower to move
+        :param to_pos: specifies the tower to move on top of
+        :param player: ID of a player
+        :return: whether the player is allowed to make this move given this rule set
+        """
+        # only perform basic checks ...
+        if not self.basically_allows_move(from_pos, to_pos):
+            return False
+
+        # ... and check movement rule (quad neighbourhood) using manhattan distance
+        if abs(from_pos[0] - to_pos[0]) + abs(from_pos[1] - to_pos[1]) > 1:
+            return False
+
+        return True
