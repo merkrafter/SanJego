@@ -12,8 +12,10 @@ class TestBaseRuleSet(TestCase):
         from_pos = (0, 0)
         to_pos = (0, 1)
         gf = GameField(1, 2)
-        rs = BaseRuleSet(gf)
-        self.assertTrue(rs.allows_move(from_pos, to_pos, gf.player1))
+        for RuleSet in [BaseRuleSet, KingsRuleSet, MajorityRuleSet, FreeRuleSet, MoveOnOpposingOnlyRuleSet]:
+            rs = RuleSet(gf)
+            with self.subTest(f"{RuleSet.__name__}"):
+                self.assertTrue(rs.allows_move(from_pos, to_pos, gf.player1))
 
     def test_does_not_allow_move_outside_field(self) -> None:
         """
@@ -24,13 +26,14 @@ class TestBaseRuleSet(TestCase):
         positions = [(x, y) for x in [-1, 0, height] for y in [-1, 0, width] if not (x == 0 and y == 0)]
         for from_pos in positions:
             for to_pos in positions:
-                with self.subTest(f"{from_pos} -> {to_pos}"):
-                    gf = GameField(height=height, width=width)
-                    rs = BaseRuleSet(gf)
-                    self.assertFalse(rs.allows_move(from_pos, to_pos, gf.player1),
-                                     f"player {gf.player1} should not be able to move from {from_pos} -> {to_pos}")
-                    self.assertFalse(rs.allows_move(from_pos, to_pos, gf.player2),
-                                     f"player {gf.player2} should not be able to move from {from_pos} -> {to_pos}")
+                for RuleSet in [BaseRuleSet, KingsRuleSet, MajorityRuleSet, FreeRuleSet, MoveOnOpposingOnlyRuleSet]:
+                    with self.subTest(f"{from_pos} -> {to_pos} in {RuleSet.__name__}"):
+                        gf = GameField(height=height, width=width)
+                        rs = RuleSet(gf)
+                        self.assertFalse(rs.allows_move(from_pos, to_pos, gf.player1),
+                                         f"player {gf.player1} should not be able to move from {from_pos} -> {to_pos}")
+                        self.assertFalse(rs.allows_move(from_pos, to_pos, gf.player2),
+                                         f"player {gf.player2} should not be able to move from {from_pos} -> {to_pos}")
 
     def test_does_not_allow_moving_without_towers(self) -> None:
         """
@@ -48,13 +51,14 @@ class TestBaseRuleSet(TestCase):
         gf.set_tower_at(pos=no_tower_pos1, tower=None)
         gf.set_tower_at(pos=no_tower_pos2, tower=None)
         gf.set_tower_at(pos=tower_pos, tower=Tower(owner=player1))
-        rs = BaseRuleSet(gf)
 
-        for (from_pos, to_pos) in combinations(positions, 2):
-            with self.subTest(f"{from_pos} -> {to_pos}"):
-                self.assertNotEqual(from_pos, tower_pos, "misconfigured test: both positions must not be equal")
-                self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
-                                 f"should not allow move from {from_pos} -> {to_pos} (missing tower)")
+        for RuleSet in [BaseRuleSet, KingsRuleSet, MajorityRuleSet, FreeRuleSet, MoveOnOpposingOnlyRuleSet]:
+            rs = RuleSet(gf)
+            for (from_pos, to_pos) in combinations(positions, 2):
+                with self.subTest(f"{from_pos} -> {to_pos} in {RuleSet.__name__}"):
+                    self.assertNotEqual(from_pos, tower_pos, "misconfigured test: both positions must not be equal")
+                    self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
+                                     f"should not allow move from {from_pos} -> {to_pos} (missing tower)")
 
     def test_does_not_allow_diagonal_move(self) -> None:
         """
@@ -66,12 +70,15 @@ class TestBaseRuleSet(TestCase):
         from_pos = (x, y)
 
         gf = GameField(3, 3)
-        rs = BaseRuleSet(gf)
         some_player = gf.player1  # not relevant for this test
-        for to_pos in positions:
-            with self.subTest(f"{from_pos} -> {to_pos}"):
-                self.assertFalse(rs.allows_move(from_pos, to_pos, some_player),
-                                 f"should not allow move {from_pos} -> {to_pos}")
+
+        # any rule set except king's rule set
+        for RuleSet in [BaseRuleSet, MajorityRuleSet, FreeRuleSet, MoveOnOpposingOnlyRuleSet]:
+            rs = RuleSet(gf)
+            for to_pos in positions:
+                with self.subTest(f"{from_pos} -> {to_pos} in {RuleSet.__name__}"):
+                    self.assertFalse(rs.allows_move(from_pos, to_pos, some_player),
+                                     f"should not allow move {from_pos} -> {to_pos}")
 
     def test_should_not_allow_None_positions(self) -> None:
         """
@@ -80,15 +87,16 @@ class TestBaseRuleSet(TestCase):
         positions = [None, (0, 0)]
 
         gf = GameField(2, 2)
-        rs = BaseRuleSet(gf)
         some_player = gf.player1
 
-        for from_pos in positions:
-            for to_pos in positions:
-                if from_pos is None or to_pos is None:  # not both correct positions
-                    with self.subTest(f"{from_pos} -> {to_pos}"):
-                        self.assertFalse(rs.allows_move(from_pos, to_pos, some_player),
-                                         f"should not allow move {from_pos} -> {to_pos}")
+        for RuleSet in [BaseRuleSet, KingsRuleSet, MajorityRuleSet, FreeRuleSet, MoveOnOpposingOnlyRuleSet]:
+            rs = RuleSet(gf)
+            for from_pos in positions:
+                for to_pos in positions:
+                    if from_pos is None or to_pos is None:  # not both correct positions
+                        with self.subTest(f"{from_pos} -> {to_pos} in {RuleSet.__name__}"):
+                            self.assertFalse(rs.allows_move(from_pos, to_pos, some_player),
+                                             f"should not allow move {from_pos} -> {to_pos}")
 
     def test_does_not_allow_moving_opposing_towers(self) -> None:
         """
@@ -100,13 +108,16 @@ class TestBaseRuleSet(TestCase):
             pos_of_p1_tower: Tower(owner=0),
             pos_of_p2_tower: Tower(owner=1)
         })
-        rs = BaseRuleSet(gf)
 
-        self.assertFalse(rs.allows_move(from_pos=pos_of_p1_tower, to_pos=pos_of_p2_tower, player=gf.player2),
-                         "player 2 may not move player 1's tower")
+        # except FreeRuleSet
+        for RuleSet in [BaseRuleSet, KingsRuleSet, MajorityRuleSet, MoveOnOpposingOnlyRuleSet]:
+            with self.subTest(f"{RuleSet.__name__}"):
+                rs = RuleSet(gf)
+                self.assertFalse(rs.allows_move(from_pos=pos_of_p1_tower, to_pos=pos_of_p2_tower, player=gf.player2),
+                                 "player 2 may not move player 1's tower")
 
-        self.assertFalse(rs.allows_move(from_pos=pos_of_p2_tower, to_pos=pos_of_p1_tower, player=gf.player1),
-                         "player 1 may not move player 2's tower")
+                self.assertFalse(rs.allows_move(from_pos=pos_of_p2_tower, to_pos=pos_of_p1_tower, player=gf.player1),
+                                 "player 1 may not move player 2's tower")
 
     def test_player_may_move_tower_with_height_1(self) -> None:
         """
@@ -126,11 +137,14 @@ class TestBaseRuleSet(TestCase):
         })
 
         # actual test case
-        rule_set = BaseRuleSet(gf)
-        self.assertTrue(rule_set.allows_move(from_pos, to_pos, player1),
-                        f"player {player1} should be able to move tower {subject_tower}")
-        self.assertFalse(rule_set.allows_move(from_pos, to_pos, some_other_player),
-                         f"player {some_other_player} should not be able to move tower {subject_tower}")
+        # except FreeRuleSet
+        for RuleSet in [BaseRuleSet, MajorityRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet]:
+            with self.subTest(f"{RuleSet.__name__}"):
+                rs = RuleSet(gf)
+                self.assertTrue(rs.allows_move(from_pos, to_pos, player1),
+                                f"player {player1} should be able to move tower {subject_tower}")
+                self.assertFalse(rs.allows_move(from_pos, to_pos, some_other_player),
+                                 f"player {some_other_player} should not be able to move tower {subject_tower}")
 
     def test_player_may_move_tower_with_half_share(self) -> None:
         """
@@ -180,7 +194,7 @@ class TestBaseRuleSet(TestCase):
                     from_pos: tower,
                     to_pos: Tower(owner=some_other_player)
                 })
-                rs = BaseRuleSet(gf)
+                rs = MajorityRuleSet(gf)
                 self.assertTrue(rs.allows_move(from_pos, to_pos, player1),
                                 f"player {player1} should be able to move the tower {tower}")
                 self.assertFalse(rs.allows_move(from_pos, to_pos, some_other_player),
@@ -197,8 +211,12 @@ class TestBaseRuleSet(TestCase):
         gf.set_tower_at(pos=from_pos, tower=Tower(owner=player1))
         gf.set_tower_at(pos=to_pos, tower=Tower(owner=player1))
 
-        rs = BaseRuleSet(gf)
-        self.assertFalse(rs.allows_move(from_pos, to_pos, player1), "should not allow move when both owners are equal")
+        # except FreeRuleSet
+        for RuleSet in [BaseRuleSet, KingsRuleSet, MajorityRuleSet, MoveOnOpposingOnlyRuleSet]:
+            with self.subTest(f"{RuleSet.__name__}"):
+                rs = RuleSet(gf)
+                self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
+                                 "should not allow move when both owners are equal")
 
     def test_does_not_allow_moving_too_far(self) -> None:
         """
@@ -207,16 +225,17 @@ class TestBaseRuleSet(TestCase):
         """
         from_pos = (2, 2)
         positions = [(x, y) for x in [0, 2, 4] for y in [0, 2, 4, 5, 6]]
-        for to_pos in positions:
-            with self.subTest(f"{from_pos} -> {to_pos}"):
-                gf = GameField(5, 7)
-                player1 = gf.player1
-                gf.set_tower_at(pos=from_pos, tower=Tower(owner=player1))
-                gf.set_tower_at(pos=to_pos, tower=Tower(owner=player1))
+        for RuleSet in [BaseRuleSet, KingsRuleSet, MajorityRuleSet, MoveOnOpposingOnlyRuleSet]:
+            for to_pos in positions:
+                with self.subTest(f"{from_pos} -> {to_pos} in {RuleSet.__name__}"):
+                    gf = GameField(5, 7)
+                    player1 = gf.player1
+                    gf.set_tower_at(pos=from_pos, tower=Tower(owner=player1))
+                    gf.set_tower_at(pos=to_pos, tower=Tower(owner=player1))
 
-                rs = BaseRuleSet(gf)
-                self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
-                                 f"should not allow move from {from_pos} -> {to_pos} (too far)")
+                    rs = RuleSet(gf)
+                    self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
+                                     f"should not allow move from {from_pos} -> {to_pos} (too far)")
 
     def test_does_not_allow_moving_for_wrong_player(self) -> None:
         """
