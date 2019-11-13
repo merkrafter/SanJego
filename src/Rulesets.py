@@ -63,3 +63,27 @@ class BaseRuleSet(object):
             return False
 
         return True
+
+
+class KingsRuleSet(BaseRuleSet):
+    """
+    Using this rule set, a player may move its towers diagonally, effectively allowing an eighth neighbourhood.
+    This is also known as the king's neighbourhood (derived from chess).
+    """
+
+    def allows_move(self, from_pos, to_pos, player):
+        """
+        Allows players to move a tower into its king's neighbourhood, that is the 8 fields directly adjacent to it.
+        :param from_pos: specifies the tower to move
+        :param to_pos: specifies the tower to move on top of
+        :param player: ID of a player
+        :return: whether the player is allowed to make this move given this rule set
+        """
+        if not self.basically_allows_move(from_pos, to_pos):
+            return False
+
+        # both coordinates may differ by at most 1
+        if abs(from_pos[0] - to_pos[0]) > 1 or abs(from_pos[1] - to_pos[1]) > 1:
+            return False
+
+        return True
