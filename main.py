@@ -1,6 +1,9 @@
+import sys
+
 from sacred import Experiment
 
-from src.GameOfSanJego import GameField, RuleSet, GameNode
+from src.GameOfSanJego import GameField, GameNode
+from src.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, MajorityRuleSet, FreeRuleSet
 from src.Searching import alpha_beta_search
 
 ex = Experiment()
@@ -9,6 +12,7 @@ ex = Experiment()
 @ex.config
 def config():
     # game relevant
+    rules = 'base'
     height = 1
     width = 1
     max_player_starts = True
@@ -19,10 +23,24 @@ def config():
 
 
 @ex.automain
-def main(height: int, width: int, max_player_starts: bool, max_depth: int, verbose: bool):
+def main(rules: str, height: int, width: int, max_player_starts: bool, max_depth: int, verbose: bool):
+    RULES = {
+        'base': BaseRuleSet,
+        'kings': KingsRuleSet,
+        'oppose': MoveOnOpposingOnlyRuleSet,
+        'majority': MajorityRuleSet,
+        'free': FreeRuleSet
+    }
+
+    if rules not in RULES:
+        sys.stderr.write(f"'{rules}' not recognised. Allowed rules are: ")
+        sys.stderr.write(", ".join(RULES.keys()))
+        sys.stderr.write("\n")
+        exit(1)
+
     # create the necessary objects
     game_field = GameField(height=height, width=width)
-    rule_set = RuleSet(game_field)
+    rule_set = RULES[rules](game_field)
     start_node = GameNode(game_field, rule_set, max_player=max_player_starts)
 
     # Each time a player moves, the number of towers on the field is reduced by 1.
@@ -31,7 +49,7 @@ def main(height: int, width: int, max_player_starts: bool, max_depth: int, verbo
     depth = min(2 * height * width + 1, max_depth)
 
     # run the actual experiment
-    print(f"Calculating the game value for a field of size {height} x {width}:")
+    print(f"Calculating the '{rules}' game value for a field of size {height} x {width}:")
     if verbose:
         print(game_field)
     value = alpha_beta_search(node=start_node, depth=depth)
