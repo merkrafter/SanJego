@@ -211,12 +211,9 @@ class TestBaseRuleSet(TestCase):
         gf.set_tower_at(pos=from_pos, tower=Tower(owner=player1))
         gf.set_tower_at(pos=to_pos, tower=Tower(owner=player1))
 
-        # except FreeRuleSet
-        for RuleSet in [BaseRuleSet, KingsRuleSet, MajorityRuleSet, MoveOnOpposingOnlyRuleSet]:
-            with self.subTest(f"{RuleSet.__name__}"):
-                rs = RuleSet(gf)
-                self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
-                                 "should not allow move when both owners are equal")
+        rs = MoveOnOpposingOnlyRuleSet(gf)
+        self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
+                         "should not allow move when both owners are equal")
 
     def test_does_not_allow_moving_too_far(self) -> None:
         """
