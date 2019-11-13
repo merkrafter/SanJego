@@ -55,3 +55,37 @@ class TestBaseRuleSet(TestCase):
                 self.assertNotEqual(from_pos, tower_pos, "misconfigured test: both positions must not be equal")
                 self.assertFalse(rs.allows_move(from_pos, to_pos, player1),
                                  f"should not allow move from {from_pos} -> {to_pos} (missing tower)")
+
+    def test_does_not_allow_diagonal_move(self) -> None:
+        """
+        Using the base rule set, it should not be allowed to move diagonally.
+        """
+        x = 1
+        y = 1
+        positions = [(x + i, y + j) for i in (-1, 1) for j in (-1, 1)]
+        from_pos = (x, y)
+
+        gf = GameField(3, 3)
+        rs = BaseRuleSet(gf)
+        some_player = gf.player1  # not relevant for this test
+        for to_pos in positions:
+            with self.subTest(f"{from_pos} -> {to_pos}"):
+                self.assertFalse(rs.allows_move(from_pos, to_pos, some_player),
+                                 f"should not allow move {from_pos} -> {to_pos}")
+
+    def test_should_not_allow_None_positions(self) -> None:
+        """
+        The rule set should not allow moves that involve a `None` position.
+        """
+        positions = [None, (0, 0)]
+
+        gf = GameField(2, 2)
+        rs = BaseRuleSet(gf)
+        some_player = gf.player1
+
+        for from_pos in positions:
+            for to_pos in positions:
+                if from_pos is None or to_pos is None:  # not both correct positions
+                    with self.subTest(f"{from_pos} -> {to_pos}"):
+                        self.assertFalse(rs.allows_move(from_pos, to_pos, some_player),
+                                         f"should not allow move {from_pos} -> {to_pos}")
