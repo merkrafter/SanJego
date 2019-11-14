@@ -3,9 +3,9 @@ import sys
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
 
-from src.GameOfSanJego import GameField, GameNode
+from src.GameOfSanJego import GameField
 from src.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, MajorityRuleSet, FreeRuleSet
-from src.Searching import alpha_beta_search, CountCallback
+from src.Searching import alpha_beta_search, CountCallback, GameNode
 
 ex = Experiment()
 ex.observers.append(FileStorageObserver('results'))
@@ -42,8 +42,7 @@ def main(rules: str, height: int, width: int, max_player_starts: bool, max_depth
 
     # create the necessary objects
     game_field = GameField(height=height, width=width)
-    rule_set = RULES[rules](game_field)
-    start_node = GameNode(game_field, rule_set, max_player=max_player_starts)
+    start_node = GameNode(game_field, RULES[rules], max_player=max_player_starts)
 
     # Each time a player moves, the number of towers on the field is reduced by 1.
     # If in the worst case only one player is able to move, the game is over in at most 2*size_of_the_field moves.
