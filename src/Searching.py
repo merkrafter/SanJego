@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Any, Iterator
 
 
@@ -32,6 +33,14 @@ class SearchCallback(object):
     @abstractmethod
     def callback(self, node: Node, depth: int, alpha: int, beta: int, maximising_player: bool) -> None:
         pass
+
+
+class CountCallback(SearchCallback):
+    def __init__(self):
+        self.counter = 0
+
+    def callback(self, node: Node, depth: int, alpha: int, beta: int, maximising_player: bool) -> None:
+        self.counter += 1
 
 
 def alpha_beta_search(node: Node, depth: int, alpha: float = -float('inf'), beta: float = float('inf'),
@@ -77,4 +86,6 @@ def alpha_beta_search(node: Node, depth: int, alpha: float = -float('inf'), beta
 
 
 if __name__ == "__main__":
-    print(alpha_beta_search(Node(1), 3))
+    counter = CountCallback()
+    print(alpha_beta_search(Node(1), 4, callback=counter))
+    print(f"nodes evaluated: {counter.counter}")
