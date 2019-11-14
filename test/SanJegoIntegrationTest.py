@@ -1,7 +1,7 @@
 import unittest
 
-from src.GameOfSanJego import GameField, GameNode, RuleSet, Tower
-from src.Searching import alpha_beta_search
+from src.GameOfSanJego import GameField, RuleSet, Tower
+from src.Searching import alpha_beta_search, GameNode
 
 
 class TestSanJego(unittest.TestCase):
