@@ -4,7 +4,7 @@ from sacred import Experiment
 
 from src.GameOfSanJego import GameField, GameNode
 from src.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, MajorityRuleSet, FreeRuleSet
-from src.Searching import alpha_beta_search
+from src.Searching import alpha_beta_search, CountCallback
 
 ex = Experiment()
 
@@ -48,9 +48,12 @@ def main(rules: str, height: int, width: int, max_player_starts: bool, max_depth
     # ('*2' because the necessary skip of the over player accounts for the depth as well.)
     depth = min(2 * height * width + 1, max_depth)
 
+    callback = CountCallback()
+
     # run the actual experiment
     print(f"Calculating the '{rules}' game value for a field of size {height} x {width}:")
     if verbose:
         print(game_field)
-    value = alpha_beta_search(node=start_node, depth=depth)
+    value = alpha_beta_search(node=start_node, depth=depth, callback=callback)
+    print(f"Searched {callback.counter} nodes")
     return value
