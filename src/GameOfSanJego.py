@@ -157,9 +157,7 @@ class GameField(object):
         :param other: `GameField` instance to compare `self` with
         :return: whether both game fields are logically equal
         """
-        return hasattr(other, "field") and other.field == self.field and \
-               hasattr(other, "player1") and other.player1 == self.player1 and \
-               hasattr(other, "player2") and other.player2 == self.player2
+        return other.field == self.field and other.player1 == self.player1 and other.player2 == self.player2
 
     def get_tower_at(self, pos: (int, int)) -> Optional[Tower]:
         """
