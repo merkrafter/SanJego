@@ -1,6 +1,7 @@
 import unittest
 
-from src.GameOfSanJego import GameField, RuleSet, Tower
+from src.GameOfSanJego import GameField, Tower
+from src.Rulesets import BaseRuleSet
 from src.Searching import alpha_beta_search, GameNode
 
 
@@ -16,8 +17,7 @@ class TestSanJego(unittest.TestCase):
         maximising_player = True
 
         gf = GameField(1, 1)
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs, max_player=maximising_player)
+        node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
         expected_value = node.value()
         for depth in range(5):
             with self.subTest(f"depth {depth}"):
@@ -53,8 +53,7 @@ class TestSanJego(unittest.TestCase):
             # [1,1,0] |         | [0,0,0]
             # [1]     |         | [0]
 
-            rs = RuleSet(gf)
-            node = GameNode(gf, rs, max_player=maximising_player)
+            node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
             expected_value = node.value()
             # depth 0: this node; depth 1: skipped move;
             # depth 2: move of respective opponent that would change game value, hence not covered in this test
@@ -77,8 +76,7 @@ class TestSanJego(unittest.TestCase):
 
         expected_values = (-2, 2)  # (min starts, max starts)
         for maximising_player in [True, False]:
-            rs = RuleSet(gf)
-            node = GameNode(gf, rs, max_player=maximising_player)
+            node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
             expected_value = expected_values[maximising_player]
             for depth in range(1, 5):  # depth 0 would only calculate the current value (==0)
                 with self.subTest(f"depth {depth} as {('min', 'max')[maximising_player]}"):
@@ -101,8 +99,7 @@ class TestSanJego(unittest.TestCase):
 
         expected_values = (-2, -3)  # (min starts, max starts)
         for maximising_player in [True, False]:
-            rs = RuleSet(gf)
-            node = GameNode(gf, rs, max_player=maximising_player)
+            node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
             expected_value = expected_values[maximising_player]
             for depth in range(2, 5):  # depth < 2 would only not calculate the correct value
                 with self.subTest(f"depth {depth} as {('min', 'max')[maximising_player]}"):
@@ -126,8 +123,7 @@ class TestSanJego(unittest.TestCase):
 
         expected_values = (-3, 3)  # (min starts, max starts)
         for maximising_player in [True, False]:
-            rs = RuleSet(gf)
-            node = GameNode(gf, rs, max_player=maximising_player)
+            node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
             expected_value = expected_values[maximising_player]
             for depth in range(3, 5):  # depth < 3 would only not calculate the correct value
                 with self.subTest(f"depth {depth} as {('min', 'max')[maximising_player]}"):
@@ -152,8 +148,7 @@ class TestSanJego(unittest.TestCase):
         self.assertTrue(maximising_player, "misconfigured test: it should be player1's (max) move")
 
         expected_value = 4
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs, max_player=maximising_player)
+        node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
         actual_value = alpha_beta_search(node, depth=3, maximising_player=maximising_player)  # depth 3 is enough
         self.assertEqual(expected_value, actual_value,
                          f"expected a game value of {expected_value} but got {actual_value}")

@@ -1,7 +1,8 @@
 import unittest
 
 from src import Searching
-from src.GameOfSanJego import Tower, GameField, RuleSet
+from src.GameOfSanJego import Tower, GameField
+from src.Rulesets import BaseRuleSet
 from src.Searching import GameNode
 
 
@@ -62,10 +63,9 @@ class TestGameNode(unittest.TestCase):
         A game node should not yield any real children (that is: only skipping) if it contains a 1x1 game field.
         """
         gf = GameField(1, 1)
-        rs = RuleSet(gf)
         for is_max_player in [True, False]:
             with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
-                node = GameNode(gf, rs, max_player=is_max_player)
+                node = GameNode(gf, BaseRuleSet, max_player=is_max_player)
                 children = list(node.children())
                 self.assertEqual(1, len(children), f"there should be exactly 1 move (skip), but found {len(children)}")
                 child = children[0]
@@ -90,10 +90,9 @@ class TestGameNode(unittest.TestCase):
             (2, 2): Tower(owner=player2)
         })
 
-        rs = RuleSet(gf)
         for is_max_player in [True, False]:
             with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
-                node = GameNode(gf, rs, max_player=is_max_player)
+                node = GameNode(gf, BaseRuleSet, max_player=is_max_player)
                 children = list(node.children())
                 self.assertEqual(1, len(children), f"there should be exactly 1 move (skip), but found {len(children)}")
                 child = children[0]
@@ -119,10 +118,9 @@ class TestGameNode(unittest.TestCase):
             (1, 1): Tower(owner=player2)
         })
 
-        rs = RuleSet(gf)
         for is_max_player in [True, False]:
             with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
-                node = GameNode(gf, rs, max_player=is_max_player)
+                node = GameNode(gf, BaseRuleSet, max_player=is_max_player)
                 children = list(node.children())
                 self.assertEqual(1, len(children), f"this node should have only one child but found {children}")
 
@@ -142,8 +140,7 @@ class TestGameNode(unittest.TestCase):
             (1, 1): Tower(owner=player2)
         })
 
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs)
+        node = GameNode(gf, BaseRuleSet)
         children = list(node.children())
         self.assertEqual(1, len(children), f"this node should have only one child but found {children}")
 
@@ -164,8 +161,7 @@ class TestGameNode(unittest.TestCase):
             (1, 1): Tower(owner=player2)
         })
 
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs, max_player=False)
+        node = GameNode(gf, BaseRuleSet, max_player=False)
         children = list(node.children())
         self.assertEqual(2, len(children), f"this node should have two children but found {children}")
 
@@ -187,8 +183,7 @@ class TestGameNode(unittest.TestCase):
             (1, 1): Tower(owner=player2)
         })
 
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs, max_player=False)
+        node = GameNode(gf, BaseRuleSet, max_player=False)
         children = list(node.children())
         self.assertEqual(3, len(children), f"this node should have three children but found {children}")
 
@@ -208,8 +203,7 @@ class TestGameNode(unittest.TestCase):
             (0, 2): Tower(owner=player2)
         })
 
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs, max_player=maximising_player)
+        node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
         children = list(node.children())
         self.assertEqual(1, len(children), f"there should be exactly 1 move (skip), but found {len(children)}")
         self.assertEqual(gf, children[0].game_field, "skipping should not alter the game field")

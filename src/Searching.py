@@ -2,7 +2,8 @@ import copy
 from abc import abstractmethod
 from typing import Iterator
 
-from src.GameOfSanJego import GameField, RuleSet
+from src.GameOfSanJego import GameField
+from src.Rulesets import BaseRuleSet
 
 
 class GameNode(object):
@@ -11,20 +12,21 @@ class GameNode(object):
     value of this game state.
     """
 
-    def __init__(self, game_field: GameField, rule_set: RuleSet, max_player: bool = True,
+    def __init__(self, game_field: GameField, rule_set_type: type(BaseRuleSet), max_player: bool = True,
                  skipped_before: bool = False) -> None:
         """
         Creates a new `GameNode` by setting the game field, rule set and player given as arguments.
         If `player` is omitted, it is set to `game_field`'s `player1` attribute.
         :param skipped_before: for internal use only; is `True` if this is a skipping move
         :param game_field:
-        :param rule_set:
+        :param rule_set_type: a subtype of BaseRuleSet (or BaseRuleSet itself)
         :param max_player: whether the maximising player moves next
         """
         # both parameters can not be None, because it is not clear what RuleSet to use in that case
         self.skipped_before = skipped_before
         self.game_field = game_field
-        self.rule_set = rule_set
+        self.rule_set_type = rule_set_type
+        self.rule_set = rule_set_type(game_field)
         self.max_player = max_player
         if self.max_player:
             self.player = self.game_field.player1
@@ -49,14 +51,14 @@ class GameNode(object):
                     gf = copy.deepcopy(self.game_field)
                     gf.make_move(from_pos, to_pos)
                     count += 1
-                    yield GameNode(gf, RuleSet(gf), not self.max_player, skipped_before=False)
+                    yield GameNode(gf, self.rule_set_type, not self.max_player, skipped_before=False)
         if count == 0 and not self.skipped_before:  # game ends if both players can not move
             # maybe the skipping move can be done implicitly like so:
             # for child in GameNode(gf, RuleSet(gf), not self.max_player, skipped_before=True).children():
             #    yield child
             # however, this could conflict with the alpha beta search (moving player)
             gf = copy.deepcopy(self.game_field)
-            yield GameNode(gf, RuleSet(gf), not self.max_player, skipped_before=True)
+            yield GameNode(gf, self.rule_set_type, not self.max_player, skipped_before=True)
 
     def children(self) -> Iterator['GameNode']:
         """
