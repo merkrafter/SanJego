@@ -133,10 +133,10 @@ class TestGameNode(unittest.TestCase):
         player2 = 1
 
         # set tower constellation to allow one move:
-        # (0,0) -> (1,1)
+        # (0,0) -> (0,1)
         gf = GameField.setup_field({
             (0, 0): Tower(owner=player1),
-            (0, 1): Tower(structure=[player1] + [player2] * 2),  # player 1 can not move here
+            (0, 1): Tower(structure=[player2] + [player1] * 2),
             (1, 1): Tower(owner=player2)
         })
 
@@ -153,19 +153,19 @@ class TestGameNode(unittest.TestCase):
         player2 = 1
 
         # set tower constellation to allow two moves:
-        # (1,1) -> (0,0) and
-        # (1,1) -> (0,1)
+        # (0,1) -> (0,0) and
+        # (0,1) -> (1,1)
         gf = GameField.setup_field({
             (0, 0): Tower(owner=player1),
-            (0, 1): Tower(structure=[player1] * 2 + [player2]),  # player 2 can not move this
-            (1, 1): Tower(owner=player2)
+            (0, 1): Tower(structure=[player2] * 2 + [player1]),
+            (1, 1): Tower(owner=player1)
         })
 
         node = GameNode(gf, BaseRuleSet, max_player=False)
         children = list(node.children())
         self.assertEqual(2, len(children), f"this node should have two children but found {children}")
 
-    def test_children_with_three_allowed_moves(self) -> None:
+    def test_children_with_three_allowed_moves_angle(self) -> None:
         """
         A game node with three allowed moves should have three children. There is no other move that is disallowed
         in this test case.
@@ -174,16 +174,36 @@ class TestGameNode(unittest.TestCase):
         player2 = 1
 
         # set tower constellation to allow three moves:
-        # (1,1) -> (0,0),
-        # (1,1) -> (0,1) and
-        # (0,1) -> (0,0)
+        # (0,0) -> (0,1),
+        # (0,1) -> (0,0) and
+        # (0,1) -> (1,1)
         gf = GameField.setup_field({
             (0, 0): Tower(owner=player1),
-            (0, 1): Tower(structure=[player1] + [player2] * 2),  # note: player 2 can move this
+            (0, 1): Tower(structure=[player1] + [player2] * 2),
             (1, 1): Tower(owner=player2)
         })
 
-        node = GameNode(gf, BaseRuleSet, max_player=False)
+        node = GameNode(gf, BaseRuleSet, max_player=True)
+        children = list(node.children())
+        self.assertEqual(3, len(children), f"this node should have three children but found {children}")
+
+    def test_children_with_three_allowed_moves_row(self) -> None:
+        """
+        A game node with three allowed moves should have three children. There is no other move that is disallowed
+        in this test case.
+        """
+        player1 = 0
+        player2 = 1
+        maximising_player = True
+
+        # [0] | [0, 1, 1] | [1]
+        gf = GameField.setup_field({
+            (0, 0): Tower(owner=player1),  # (0,0) -> (0,1)
+            (0, 1): Tower(structure=[player1] + [player2] * 2),  # (0,1) -> (0,0) and (0,1) -> (0,2)
+            (0, 2): Tower(owner=player2)
+        })
+
+        node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
         children = list(node.children())
         self.assertEqual(3, len(children), f"this node should have three children but found {children}")
 
@@ -194,19 +214,21 @@ class TestGameNode(unittest.TestCase):
         """
         player1 = 0
         player2 = 1
-        maximising_player = True
+        maximising_player = False
 
-        # [0] | [0, 1, 1] | [1]
+        # player2 is to move but can not do anything
+        # [0] | [0, 1, 1]
         gf = GameField.setup_field({
-            (0, 0): Tower(owner=player1),  # (0,0) -> (0,1) is illegal
-            (0, 1): Tower(structure=[player1] + [player2] * 2),  # player1 may not move this
-            (0, 2): Tower(owner=player2)
+            (0, 0): Tower(owner=player1),
+            (0, 1): Tower(structure=[player1] + [player2] * 2),
         })
 
         node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
         children = list(node.children())
         self.assertEqual(1, len(children), f"there should be exactly 1 move (skip), but found {len(children)}")
         self.assertEqual(gf, children[0].game_field, "skipping should not alter the game field")
+
+        pass
 
 
 if __name__ == '__main__':
