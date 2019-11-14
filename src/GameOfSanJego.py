@@ -378,7 +378,7 @@ class GameNode(Searching.Node):
         else:
             self.player = self.game_field.player2
 
-    def children(self) -> Iterator['GameNode']:
+    def _children(self) -> Iterator['GameNode']:
         """
         Iterates over all possible/allowed following game states.
         :return: iterator over all following game states
@@ -404,6 +404,16 @@ class GameNode(Searching.Node):
             # however, this could conflict with the alpha beta search (moving player)
             gf = copy.deepcopy(self.game_field)
             yield GameNode(gf, RuleSet(gf), not self.max_player, skipped_before=True)
+
+    def children(self) -> Iterator['GameNode']:
+        """
+        Iterates over all possible/allowed following game states.
+        :return: iterator over all following game states
+        """
+        if self.max_player:
+            return sorted(self._children(), key=lambda x: x.value(), reverse=True)  # high to low values
+        else:
+            return sorted(self._children(), key=lambda x: x.value(), reverse=False)  # low to high values
 
     def value(self) -> int:
         """
