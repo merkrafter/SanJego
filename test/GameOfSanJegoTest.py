@@ -198,6 +198,25 @@ class MoveTest(TestCase):
         move = Move.skip()
         self.assertTrue(move.is_skip_move(), "Creation of a skipping move should actually create one")
 
+    def test_make_move_sets_affected_tower(self) -> None:
+        """
+        Making a move should set the moved tower so that the move can be reversed.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        from_tower = Tower(structure=[0, 1])
+        to_tower = Tower(1)
+        gf = GameField.setup_field({
+            from_pos: from_tower,
+            to_pos: to_tower
+        })
+
+        move = Move(from_pos, to_pos)
+
+        gf.make_move(move=move)
+        self.assertTrue(move.already_made(), "A move should recognize it has been made")
+        self.assertEqual(move.from_tower, from_tower, "Moved tower should be stored in move object")
+
 
 class TestGameField(TestCase):
     def test_default__init__(self) -> None:
@@ -396,7 +415,7 @@ class TestGameField(TestCase):
                         self.assertFalse(gf.set_tower_at(pos=(x, y), tower=some_tower),
                                          "Setting a tower to an invalid position should return False")
 
-    def test_make_move(self) -> None:
+    def test_make_move_with_explicit_positions(self) -> None:
         """
         Making a valid move should communicate that this operation was successful.
         """
@@ -432,11 +451,12 @@ class TestGameField(TestCase):
         successful: bool = gf.make_move(from_pos=pos, to_pos=pos)
         self.assertFalse(successful, "Trying to move a tower from and to the same position should return False")
 
-    def test_moves_towers_correctly(self) -> None:
+    def test_moves_towers_correctly_with_explicit_positions(self) -> None:
         """
         Moving a tower should remove a tower from the 'source' position and set a combined tower at the target position.
         It is free for the implementation whether "remove" means setting to `None` or just insert a unit tower of
         height 0.
+        This test case uses explicit positions instead of a Move object.
         """
         player1 = 1
         player2 = 2
@@ -461,6 +481,63 @@ class TestGameField(TestCase):
         actual_tower = gf.get_tower_at(to_pos)
         self.assertEqual(expected_tower, actual_tower, f"Expected combined tower ({expected_tower}) at {to_pos} after\
                          move but found {actual_tower}")
+
+    def test_moves_towers_correctly_with_move_object(self) -> None:
+        """
+        Moving a tower should remove a tower from the 'source' position and set a combined tower at the target position.
+        It is free for the implementation whether "remove" means setting to `None` or just insert a unit tower of
+        height 0.
+        This test case uses a Move object instead of explicit positions.
+        """
+        player1 = 1
+        player2 = 2
+        top_tower = Tower(structure=[player1])
+        lower_tower = Tower(structure=[player2])
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2, player1=player1, player2=player2)
+        gf.set_tower_at(from_pos, top_tower)
+        gf.set_tower_at(to_pos, lower_tower)
+
+        move = Move(from_pos, to_pos)
+
+        gf.make_move(move=move)
+
+        # check source position
+        tower_at_from_pos = gf.get_tower_at(from_pos)
+        self.assertTrue(tower_at_from_pos is None or tower_at_from_pos.height == 0,
+                        f"the source position {from_pos} should contain an empty or unit tower after move\
+                        but found {tower_at_from_pos}")
+
+        # check target position
+        expected_tower = Tower(structure=[player1, player2])
+        actual_tower = gf.get_tower_at(to_pos)
+        self.assertEqual(expected_tower, actual_tower, f"Expected combined tower ({expected_tower}) at {to_pos} after\
+                         move but found {actual_tower}")
+
+    def test_move_without_position_data_raises_error(self) -> None:
+        """
+        Trying to make a move without providing position data (either with explicit positions or moves) should raise an
+        error.
+        """
+        gf = GameField(1, 2)
+
+        with self.assertRaises(ValueError):
+            gf.make_move()
+
+    def test_move_with_missing_explicit_position_data_raises_error(self) -> None:
+        """
+        Trying to make a move without providing a move object but with only one explicit position should raise an error.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2)
+
+        with self.assertRaises(ValueError):
+            gf.make_move(from_pos=from_pos, to_pos=None)
+
+        with self.assertRaises(ValueError):
+            gf.make_move(from_pos=None, to_pos=to_pos)
 
     def test__eq__(self) -> None:
         """
