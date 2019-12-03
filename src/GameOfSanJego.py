@@ -92,6 +92,46 @@ class Tower(object):
         return f"{self.structure}"
 
 
+class Move(object):
+    """
+    This class stores information about one move in a game of San Jego.
+    It does not contain much logic in order to keep it simple.
+    In addition to the from and to positions, moves store a reference of the moved tower
+    after making the move to allow taking a move back.
+    """
+
+    def __init__(self, from_pos: (int, int), to_pos: (int, int)) -> None:
+        """
+        Creates a new Move object by setting the source and target positions
+        :param from_pos: specifies the tower to move
+        :param to_pos: specifies the tower to move on top of
+        """
+        self.from_pos = from_pos
+        self.to_pos = to_pos
+        self.from_tower: Optional[Tower] = None
+
+    def already_made(self) -> bool:
+        """
+        A move counts as being made when the `from_tower` reference is not `None` anymore.
+        :return: whether this move has already been made
+        """
+        return self.from_tower is not None
+
+    @staticmethod
+    def skip() -> "Move":
+        """
+        This is a convenience method that allows more readable code when creating skipping moves.
+        :return: a move that indicates skipping
+        """
+        return Move(from_pos=(-1, -1), to_pos=(-1, -1))
+
+    def is_skip_move(self) -> bool:
+        """
+        :return: whether this move is a skipping move
+        """
+        return self.from_pos == (-1, -1) == self.to_pos
+
+
 class GameField(object):
     """
     This class is a container for `Tower` instances and provides methods to manipulate them.
