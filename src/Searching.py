@@ -2,7 +2,7 @@ import copy
 from abc import abstractmethod
 from typing import Iterator
 
-from src.GameOfSanJego import GameField
+from src.GameOfSanJego import GameField, Move
 from src.Rulesets import BaseRuleSet
 
 
@@ -12,7 +12,8 @@ class GameNode(object):
     value of this game state.
     """
 
-    def __init__(self, game_field: GameField, rule_set_type: type(BaseRuleSet), max_player: bool = True,
+    def __init__(self, game_field: GameField, rule_set_type: type(BaseRuleSet), move: Move = None,
+                 max_player: bool = True,
                  skipped_before: bool = False) -> None:
         """
         Creates a new `GameNode` by setting the game field, rule set and player given as arguments.
@@ -20,11 +21,13 @@ class GameNode(object):
         :param skipped_before: for internal use only; is `True` if this is a skipping move
         :param game_field:
         :param rule_set_type: a subtype of BaseRuleSet (or BaseRuleSet itself)
+        :param move: stores information on how this game node was derived from the previous one
         :param max_player: whether the maximising player moves next
         """
         # both parameters can not be None, because it is not clear what RuleSet to use in that case
         self.skipped_before = skipped_before
         self.game_field = game_field
+        self.move = move
         self.rule_set_type = rule_set_type
         self.rule_set = rule_set_type(game_field)
         self.max_player = max_player
@@ -45,20 +48,21 @@ class GameNode(object):
             # iterate over the king's neighbourhood of from_pos...
             for to_pos in [(x, y) for x in [from_pos[0] - 1, from_pos[0], from_pos[0] + 1]
                            for y in [from_pos[1] - 1, from_pos[1], from_pos[1] + 1]]:
+                move = Move(from_pos, to_pos)
 
                 # ... and yield any allowed moves
-                if self.rule_set.allows_move(self.player, from_pos, to_pos):
+                if self.rule_set.allows_move(self.player, move=move):
                     gf = copy.deepcopy(self.game_field)
-                    gf.make_move(from_pos, to_pos)
+                    gf.make_move(move=move)
                     count += 1
-                    yield GameNode(gf, self.rule_set_type, not self.max_player, skipped_before=False)
+                    yield GameNode(gf, self.rule_set_type, move, not self.max_player, skipped_before=False)
         if count == 0 and not self.skipped_before:  # game ends if both players can not move
             # maybe the skipping move can be done implicitly like so:
             # for child in GameNode(gf, RuleSet(gf), not self.max_player, skipped_before=True).children():
             #    yield child
             # however, this could conflict with the alpha beta search (moving player)
             gf = copy.deepcopy(self.game_field)
-            yield GameNode(gf, self.rule_set_type, not self.max_player, skipped_before=True)
+            yield GameNode(gf, self.rule_set_type, Move.skip(), not self.max_player, skipped_before=True)
 
     def children(self) -> Iterator['GameNode']:
         """
