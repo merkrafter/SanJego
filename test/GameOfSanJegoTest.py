@@ -1,7 +1,7 @@
 import unittest
 from unittest import TestCase
 
-from src.GameOfSanJego import Tower, GameField
+from src.GameOfSanJego import Tower, GameField, Move
 
 UNSAFE_MODE = False  # allows the execution of tests that contain eval expressions
 
@@ -179,6 +179,24 @@ class TestTower(TestCase):
         tower = Tower(1)
         self.assertEqual(eval(tower.__repr__()), tower, "The evaluation of a tower's __repr__() method should be equal\
                                                         to that tower.")
+
+
+class MoveTest(TestCase):
+    def test_new_move_has_not_been_made(self) -> None:
+        """
+        A newly created move should not indicate it has been made already.
+        """
+        from_pos = (0, 0)  # values irrelevant
+        to_pos = (0, 1)  # values irrelevant
+        move = Move(from_pos, to_pos)
+        self.assertFalse(move.already_made(), "newly created move should not indicate it has been made already")
+
+    def test_skipping_move_creation(self) -> None:
+        """
+        The construction method for skipping moves should work together with `is_skipping_move`.
+        """
+        move = Move.skip()
+        self.assertTrue(move.is_skip_move(), "Creation of a skipping move should actually create one")
 
 
 class TestGameField(TestCase):
