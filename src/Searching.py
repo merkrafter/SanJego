@@ -47,7 +47,7 @@ class GameNode(object):
                            for y in [from_pos[1] - 1, from_pos[1], from_pos[1] + 1]]:
 
                 # ... and yield any allowed moves
-                if self.rule_set.allows_move(from_pos, to_pos, self.player):
+                if self.rule_set.allows_move(self.player, from_pos, to_pos):
                     gf = copy.deepcopy(self.game_field)
                     gf.make_move(from_pos, to_pos)
                     count += 1

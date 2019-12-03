@@ -34,7 +34,7 @@ class BaseRuleSet(object):
         """
         return tower.owner == player
 
-    def allows_move(self, from_pos: Tuple[int, int], to_pos: Tuple[int, int], player: int) -> bool:
+    def allows_move(self, player: int, from_pos: Tuple[int, int], to_pos: Tuple[int, int]) -> bool:
         """
         Decides whether the given player is allowed to make the move given by the two positions on the board.
         This basic implementation allows any two towers to be moved on top of each other if their positions meet either
@@ -98,7 +98,7 @@ class KingsRuleSet(BaseRuleSet):
     This is also known as the king's neighbourhood (derived from chess).
     """
 
-    def allows_move(self, from_pos, to_pos, player):
+    def allows_move(self, player, from_pos, to_pos):
         """
         Allows players to move a tower into its king's neighbourhood, that is the 8 fields directly adjacent to it.
         :param from_pos: specifies the tower to move
@@ -125,7 +125,7 @@ class MoveOnOpposingOnlyRuleSet(BaseRuleSet):
     Using this rule set, own towers may only be moved on top of opposing towers.
     """
 
-    def allows_move(self, from_pos, to_pos, player):
+    def allows_move(self, player, from_pos, to_pos):
         """
         Allows players to move a tower only on top of opposing towers.
         :param from_pos: specifies the tower to move
@@ -133,7 +133,7 @@ class MoveOnOpposingOnlyRuleSet(BaseRuleSet):
         :param player: ID of a player
         :return: whether the player is allowed to make this move given this rule set
         """
-        if not super().allows_move(from_pos, to_pos, player):
+        if not super().allows_move(player, from_pos, to_pos):
             return False
 
         # the above line ensures that there actually are towers at the given positions
@@ -148,7 +148,7 @@ class MajorityRuleSet(BaseRuleSet):
     Using this rule set, towers may only be moved if the player holds at least 50% of the tower's bricks.
     """
 
-    def allows_move(self, from_pos, to_pos, player):
+    def allows_move(self, player, from_pos, to_pos):
         """
         Allows players to move a tower only if he holds at least 50% of the bricks of that tower.
         :param from_pos: specifies the tower to move
@@ -177,7 +177,7 @@ class FreeRuleSet(BaseRuleSet):
     Using this rule set, a player may move any tower.
     """
 
-    def allows_move(self, from_pos, to_pos, player):
+    def allows_move(self, player, from_pos, to_pos):
         """
         Allows players to move any tower on the field.
         :param from_pos: specifies the tower to move
