@@ -234,7 +234,8 @@ class GameField(object):
         self.field[x * self.width + y] = tower
         return True
 
-    def make_move(self, from_pos: (int, int), to_pos: (int, int)) -> bool:
+    def make_move(self, from_pos: Optional[Tuple[int, int]] = None, to_pos: Optional[Tuple[int, int]] = None,
+                  move: Optional[Move] = None) -> bool:
         """
         Moves the tower at `from_pos` on top of the tower at `to_pos` and returns whether this was successful.
         The method does not check whether this move is legal under the current rules.
@@ -243,8 +244,19 @@ class GameField(object):
         Both positions are 0-indexed and specify the row in the first component and the column in the second.
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
+        :param move: use positions from this move instance instead of from_pos and to_pos
         :return: whether the move was successful
         """
+        if move is not None:
+            from_pos = move.from_pos
+            to_pos = move.to_pos
+
+        if from_pos is None:
+            raise ValueError("missing from_pos")
+
+        if to_pos is None:
+            raise ValueError("missing to_pos")
+
         # check whether both positions are different
         if from_pos == to_pos:
             return False
@@ -259,6 +271,10 @@ class GameField(object):
         top_tower.move_on_top_of(lower_tower)  # only adds lower_tower to top_tower in the current implementation
         self.set_tower_at(to_pos, top_tower)
         self.set_tower_at(from_pos, None)
+
+        if move is not None:
+            move.from_tower = top_tower
+
         return True
 
     @staticmethod
