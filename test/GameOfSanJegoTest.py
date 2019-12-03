@@ -539,6 +539,49 @@ class TestGameField(TestCase):
         with self.assertRaises(ValueError):
             gf.make_move(from_pos=None, to_pos=to_pos)
 
+    def test_move_object_has_precedence_over_explicit_positions(self) -> None:
+        """
+        If both a move and explicit positions are given to GameField.make_move, the move object's positions should be
+        the ones used.
+        """
+        upper_tower_id = 1
+        lower_tower_id = 2
+
+        # idea:
+        # [1] [ ]
+        # [2] [ ]
+        # after the move, [2] should be moved while [1] should still be at (0,0)
+        # NOTE THAT it is not possible to move towers to empty spots, hence artificial towers are inserted
+        # at (0,1) and (1,1)
+        from_pos_explicit = (0, 0)
+        to_pos_explicit = (0, 1)
+        from_pos_move = (1, 0)
+        to_pos_move = (1, 1)
+
+        gf = GameField.setup_field({
+            from_pos_explicit: Tower(upper_tower_id),
+            from_pos_move: Tower(lower_tower_id),
+
+            # irrelevant; only here because towers can only be moved on top of others
+            to_pos_explicit: Tower(1),
+            to_pos_move: Tower(1)
+        })
+
+        move = Move(from_pos_move, to_pos_move)
+        gf.make_move(from_pos=from_pos_explicit, to_pos=to_pos_explicit, move=move)
+
+        # check whether the upper tower was NOT moved
+        self.assertEqual(upper_tower_id, gf.get_tower_at(from_pos_explicit).owner,
+                         "explicitly specified tower should not be moved when move object was given")
+        self.assertEqual(1, gf.get_tower_at(to_pos_explicit).height,
+                         "explicitly specified tower should not be moved when move object was given")
+
+        # check whether the lower tower WAS moved
+        self.assertTrue(gf.get_tower_at(from_pos_move) is None or gf.get_tower_at(from_pos_move).height == 0,
+                        "move-specified tower should be moved when move object was given")
+        self.assertEqual(lower_tower_id, gf.get_tower_at(to_pos_move).owner,
+                         "move-specified tower should be moved when move object was given")
+
     def test__eq__(self) -> None:
         """
         Two game fields should be compared semantically, that is, be equal if all of their towers are equal.

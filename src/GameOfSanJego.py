@@ -242,6 +242,8 @@ class GameField(object):
         It does, however, check whether this move is technically possible, i.e. both positions are distinct and
         contain towers.
         Both positions are 0-indexed and specify the row in the first component and the column in the second.
+        If both a move object and explicit positions are given, the positions specified by the move objects are used.
+        If a position is not specified in any way, a ValueError is raised.
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :param move: use positions from this move instance instead of from_pos and to_pos
