@@ -46,12 +46,18 @@ class Tower(object):
         check whether the move is actually allowed with the current game's rules..
         :param tower: the Tower to add below *this* one
         """
-        # TODO make this a method of the lower tower and change the GameField method accordingly
+        # TODO make this a method of the lower tower and change the GameField method accordingly; new name: attach
         if tower is None:
             raise ValueError("can not move this tower on top of None")
         if self.structure is None or tower.structure is None:
             raise ValueError("can not move empty towers on top of each other")
         self.structure += tower.structure
+
+    def detach(self, tower: 'Tower') -> None:
+        """
+        Removes the given tower from the top of this (self) tower
+        """
+        pass
 
     @property
     def height(self) -> int:
