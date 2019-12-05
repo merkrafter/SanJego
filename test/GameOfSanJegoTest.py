@@ -145,6 +145,59 @@ class TestTower(TestCase):
         with self.assertRaises(ValueError, msg="moving a tower on top of an empty tower should raise a ValueError"):
             tower2.move_on_top_of(tower1)
 
+    def test_detach_topmost_brick(self) -> None:
+        """
+        A tower should be able to detach its (existing) topmost brick.
+        """
+        expected_structure = [2, 1]
+        topmost_brick = [1]
+        tower_under_test = Tower(structure=topmost_brick + expected_structure)
+        tower_under_test.detach(Tower(structure=topmost_brick))
+        expected_tower = Tower(structure=expected_structure)
+        self.assertEqual(expected_tower, tower_under_test)
+
+    def test_detach_non_existing_brick(self) -> None:
+        """
+        A tower should raise an error when trying to detach its non-existing topmost brick.
+        """
+        with self.assertRaises(ValueError):
+            tower_under_test = Tower(structure=[1, 2, 1])
+            tower_under_test.detach(Tower(structure=[2]))  # not the topmost brick
+
+    def test_detach_None(self) -> None:
+        """
+        A tower should raise an error when trying to detach `None`.
+        """
+        with self.assertRaises(ValueError):
+            tower_under_test = Tower(structure=[1, 2, 1])
+            tower_under_test.detach(None)
+
+    def test_detach_empty(self) -> None:
+        """
+        When trying to remove an empty tower, nothing should happen.
+        """
+        expected_structure = [2, 1]
+        tower_under_test = Tower(structure=expected_structure)
+        tower_to_detach = Tower(1)
+        tower_to_detach.structure = []  # make the tower empty
+        tower_under_test.detach(tower_to_detach)
+        expected_tower = Tower(structure=expected_structure)
+        self.assertEqual(expected_tower, tower_under_test)
+
+    def test_add_and_detach(self) -> None:
+        """
+        After adding and removing a tower to/from another, the lower tower should be the same in the end.
+        """
+        expected_structure = [1, 2, 1]
+        upper_tower = Tower(structure=[2, 1, 2])
+        prev_upper_tower = Tower(structure=[2, 1, 2])  # necessary, since move_on_top_of modifies the upper tower
+        lower_tower = Tower(structure=expected_structure)
+        upper_tower.move_on_top_of(lower_tower)
+        lower_tower = upper_tower
+        lower_tower.detach(prev_upper_tower)
+        expected_tower = Tower(structure=expected_structure)
+        self.assertEqual(expected_tower, lower_tower)
+
     def test__eq__for_logically_equal_towers(self) -> None:
         """
         Two towers should be logically equal if they have the same structure, even if they are different instances.
