@@ -57,7 +57,13 @@ class Tower(object):
         """
         Removes the given tower from the top of this (self) tower
         """
-        pass
+        if tower is None:
+            raise ValueError("can not detach None from this tower")
+
+        if not self.structure[:len(tower.structure)] == tower.structure:
+            raise ValueError(f"{tower} is not on top of {self}")
+
+        del self.structure[:len(tower.structure)]
 
     @property
     def height(self) -> int:
