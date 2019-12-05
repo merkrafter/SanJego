@@ -131,6 +131,21 @@ class Move(object):
         """
         return self.from_pos == (-1, -1) == self.to_pos
 
+    def __repr__(self) -> str:
+        """
+        Returns a string representation of this move that can be evaluated to get a Move object back.
+        :return: a evaluable string representation of this move
+        """
+        return f"Move({self.from_pos}, {self.to_pos})"
+
+    def __str__(self) -> str:
+        """
+        Returns a string representation of this move in the format
+        "from_pos -> to_pos".
+        :return: string representation of this move
+        """
+        return f"{self.from_pos} -> {self.to_pos}"
+
 
 class GameField(object):
     """
