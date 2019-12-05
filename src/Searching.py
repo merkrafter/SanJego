@@ -70,9 +70,44 @@ class GameNode(object):
         :return: iterator over all following game states
         """
         if self.max_player:
-            return sorted(self._children(), key=lambda x: x.value(), reverse=True)  # high to low values
+            return sorted(self._children(), key=lambda x: x.heuristic_value(), reverse=True)  # high to low values
         else:
-            return sorted(self._children(), key=lambda x: x.value(), reverse=False)  # low to high values
+            return sorted(self._children(), key=lambda x: x.heuristic_value(), reverse=False)  # low to high values
+
+    def heuristic_value(self) -> float:
+        """
+        Computes a heuristic value of this `GameNode` that is used for sorting the nodes but does not necessarily
+        represents the actual value of the underlying board.
+        This heuristic will make use of the `move` attribute if it is not None to rate boards higher that arose from
+        making a move in the middle of the board.
+        """
+        # the basic idea is to lay more weight on moves that happen in the middle of the board,
+        # as they seem to be more important in terms of the outcome of the game
+        if self.move is not None:
+            x, y = self.move.from_pos
+            h = self.game_field.height
+            w = self.game_field.width
+
+            # bias values are high in the middle of the board and low at the border
+            # depend on the actual board size, hence are affecting even the end game due to high values
+            bias_x = h - abs(x - h / 2)
+            bias_y = w - abs(y - w / 2)
+
+            # normalized biases, which should only affect the opening but get nearly irrelevant in the end game
+            # difference in terms of nodes searched using these is narrow
+            # bias_x = 1 - abs(x - h / 2)/h
+            # bias_y = 1 - abs(y - w / 2)/w
+
+            # counter-intuitive logic because the MOVE that led to this node is rated as well:
+            # If `self` is a position for max_player to make the move,
+            # it means that a move from min_player led to `self`. Hence, the heuristic must be decreased in order to
+            # make `self` more attractive for min_player.
+            if self.max_player:
+                return self.game_field.value - bias_x - bias_y
+            else:
+                return self.game_field.value + bias_x + bias_y
+        else:
+            return self.game_field.value
 
     def value(self) -> int:
         """
