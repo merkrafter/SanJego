@@ -271,12 +271,16 @@ class GameField(object):
         Both positions are 0-indexed and specify the row in the first component and the column in the second.
         If both a move object and explicit positions are given, the positions specified by the move objects are used.
         If a position is not specified in any way, a ValueError is raised.
+        Making a skip move will not change the move nor the game field and is considered a successful move.
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :param move: use positions from this move instance instead of from_pos and to_pos
         :return: whether the move was successful
         """
         if move is not None:
+            if move.is_skip_move():
+                return True
+
             if move.already_made():
                 raise RuntimeError("move has already been made")
             from_pos = move.from_pos
@@ -317,8 +321,12 @@ class GameField(object):
         - when trying to take back a move that has never been made before
         - if there is a tower at the move's `from_pos` or *no* tower at the move's `to_pos`
         - if the move's `from_tower` is not a the top part of the tower at `move.to_pos`
+        Taking back a skip move will not change the move nor the game field.
         :param move: the move to revert
         """
+        if move.is_skip_move():
+            return
+
         # check whether the move has been made already
         if not move.already_made():
             raise ValueError("move has not already been made")
