@@ -635,6 +635,104 @@ class TestGameField(TestCase):
         self.assertEqual(lower_tower_id, gf.get_tower_at(to_pos_move).owner,
                          "move-specified tower should be moved when move object was given")
 
+    def test_take_back(self) -> None:
+        """
+        A game field should be able to take back a move.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        from_brick = [2]
+        to_brick = [1]
+
+        game_field = GameField.setup_field({to_pos: Tower(structure=from_brick + to_brick)})  # no tower at from_pos
+        move = Move(from_pos, to_pos)
+        move.from_tower = Tower(structure=from_brick)
+        game_field.take_back(move)
+        expected_game_field = GameField.setup_field(
+            {from_pos: Tower(structure=from_brick), to_pos: Tower(structure=to_brick)})
+        self.assertEqual(expected_game_field.get_tower_at(from_pos), game_field.get_tower_at(from_pos))
+        self.assertEqual(expected_game_field.get_tower_at(to_pos), game_field.get_tower_at(to_pos))
+
+    def test_take_back_resets_move(self) -> None:
+        """
+        After the `take_back` method, a move should not be marked as already been made.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        moved_brick = [0]
+        game_field = GameField.setup_field({to_pos: Tower(structure=moved_brick + [2])})  # no tower at from_pos
+        move = Move(from_pos, to_pos)
+        move.from_tower = Tower(structure=moved_brick)
+
+        self.assertTrue(move.already_made())
+        game_field.take_back(move)
+        self.assertFalse(move.already_made())
+
+    def test_take_back_fails_on_new_move(self) -> None:
+        """
+        The `take_back` method should not allow taking back a move that has not been made yet.
+        """
+        game_field = GameField.setup_field({(0, 1): Tower(2)})
+        move = Move(from_pos=(0, 0), to_pos=(0, 1))
+        self.assertFalse(move.already_made(), "misconfigured test: move should not be marked as already been made")
+        with self.assertRaises(ValueError):
+            game_field.take_back(move)
+
+    def test_take_back_does_not_allow_tower_at_from_pos(self) -> None:
+        """
+        The `take_back` method should not allow a tower at `from_pos`; this should be empty.
+        """
+        game_field = GameField(1, 2)  # from_pos (0,0) has a tower on it
+        move = Move(from_pos=(0, 0), to_pos=(0, 1))
+        move.from_tower = Tower(2)
+        with self.assertRaises(RuntimeError):
+            game_field.take_back(move)
+
+    def test_take_back_does_not_allow_None_at_to_pos(self) -> None:
+        """
+        The `take_back` method should force a tower at `to_pos`.
+        """
+        game_field = GameField.setup_field({(0, 0): Tower(0)}, min_width=2)  # to_pos (0,1) has no tower on it
+        move = Move(from_pos=(0, 0), to_pos=(0, 1))
+        move.from_tower = Tower(2)  # exact value does not matter; only makes sure the move counts as been made
+        with self.assertRaises(RuntimeError):
+            game_field.take_back(move)
+
+    def test_take_back_does_not_allow_wrong_upper_tower(self) -> None:
+        """
+        The `take_back` method should not allow taking back an `upper_tower` that is not *actually* on top.
+        """
+        game_field = GameField.setup_field({(0, 1): Tower(2)})  # from_pos (0,0) has no tower on it
+        move = Move(from_pos=(0, 0), to_pos=(0, 1))
+        move.from_tower = Tower(1)  # not on top of the tower at (0,1)
+        with self.assertRaises(ValueError):
+            game_field.take_back(move)
+
+    def test_take_back_does_not_allow_taking_back_complete_tower(self) -> None:
+        """
+        The `take_back` method should not allow taking back a complete tower as this would imply that the tower was
+        moved to an empty square.
+        """
+        game_field = GameField(1, 2)
+        move = Move(from_pos=(0, 0), to_pos=(0, 1))
+        move.from_tower = game_field.get_tower_at(move.to_pos)
+        with self.assertRaises(RuntimeError):
+            game_field.take_back(move)
+
+    def test_move_and_taking_back(self) -> None:
+        """
+        After making and then taking back a move, the field should be the same as before.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        game_field = GameField(1, 2)
+        prev_game_field = GameField(1, 2)  # equal to game_field
+        move = Move(from_pos=from_pos, to_pos=to_pos)
+        game_field.make_move(move=move)
+        game_field.take_back(move)
+        self.assertEqual(prev_game_field.get_tower_at(from_pos), game_field.get_tower_at(from_pos))
+        self.assertEqual(prev_game_field.get_tower_at(to_pos), game_field.get_tower_at(to_pos))
+
     def test__eq__(self) -> None:
         """
         Two game fields should be compared semantically, that is, be equal if all of their towers are equal.
