@@ -520,6 +520,31 @@ class TestGameField(TestCase):
         with self.assertRaises(RuntimeError):
             gf.make_move(move=move)
 
+    def test_making_skip_move(self) -> None:
+        """
+        Making a skip move should do nothing.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2)
+        expected_gf = GameField(1, 2)
+
+        move = Move.skip()
+
+        gf.make_move(move=move)
+        self.assertEqual(expected_gf.get_tower_at(from_pos), gf.get_tower_at(from_pos),
+                         "Making a skip move should not change the game field")
+        self.assertEqual(expected_gf.get_tower_at(to_pos), gf.get_tower_at(to_pos),
+                         "Making a skip move should not change the game field")
+        self.assertIsNone(move.from_tower, "Making a skip move should not set the moved tower")
+
+    def test_making_skip_move_returns_true(self) -> None:
+        """
+        Making a skip move should return true, indicating success.
+        """
+        gf = GameField(1, 2)
+        self.assertTrue(gf.make_move(move=Move.skip()), "Making a skip move should return true, indicating success")
+
     def test_make_move_to_and_from_invalid_positions(self) -> None:
         """
         Making an invalid move should communicate that this operation was not successful.
@@ -759,6 +784,23 @@ class TestGameField(TestCase):
         move.from_tower = game_field.get_tower_at(move.to_pos)
         with self.assertRaises(RuntimeError):
             game_field.take_back(move)
+
+    def test_take_back_skip_move(self) -> None:
+        """
+        Taking back a skip move should not do anything.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2)
+        expected_gf = GameField(1, 2)
+
+        move = Move.skip()
+
+        gf.take_back(move=move)
+        self.assertEqual(expected_gf.get_tower_at(from_pos), gf.get_tower_at(from_pos),
+                         "Taking back a skip move should not change the game field")
+        self.assertEqual(expected_gf.get_tower_at(to_pos), gf.get_tower_at(to_pos),
+                         "Taking back a skip move should not change the game field")
 
     def test_move_and_taking_back(self) -> None:
         """
