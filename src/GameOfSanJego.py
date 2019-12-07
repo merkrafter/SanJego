@@ -277,6 +277,8 @@ class GameField(object):
         :return: whether the move was successful
         """
         if move is not None:
+            if move.already_made():
+                raise RuntimeError("move has already been made")
             from_pos = move.from_pos
             to_pos = move.to_pos
 
