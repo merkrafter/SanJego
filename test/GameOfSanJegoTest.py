@@ -271,6 +271,32 @@ class MoveTest(TestCase):
         self.assertTrue(move.already_made(), "A move should recognize it has been made")
         self.assertEqual(move.from_tower, from_tower_expected, "Moved tower should be stored in move object")
 
+    def test_making_two_moves_sets_tower_correctly(self) -> None:
+        """
+        Make two consecutive moves with the same tower. After that, the Move object for the first move should not have a
+        changed from_tower attribute, preventing the use of a reference in the Move object that can be modified later.
+        """
+        move1 = Move(from_pos=(0, 0), to_pos=(0, 1))
+        move2 = Move(from_pos=(0, 1), to_pos=(0, 2))
+        self.assertEqual(move1.to_pos, move2.from_pos, "Misconfigured test: moves should be connected")
+
+        tower1 = Tower(structure=[0, 1])
+        tower2 = Tower(structure=[1, 1])
+        tower3 = Tower(structure=[1, 0, 1])
+
+        expected_from_tower = Tower(structure=[0, 1])
+        self.assertEqual(expected_from_tower, tower1, "Misconfigured test: expected tower must be equal to first tower")
+
+        gf = GameField.setup_field({
+            move1.from_pos: tower1,
+            move1.to_pos: tower2,
+            move2.to_pos: tower3
+        })
+
+        gf.make_move(move=move1)
+        gf.make_move(move=move2)
+        self.assertEqual(move1.from_tower, expected_from_tower, "First move should store first moved tower")
+
 
 class TestGameField(TestCase):
     def test_default__init__(self) -> None:
@@ -479,6 +505,20 @@ class TestGameField(TestCase):
 
         successful: bool = gf.make_move(from_pos, to_pos)
         self.assertTrue(successful, "Making a valid move should return True")
+
+    def test_prohibit_making_move_twice(self) -> None:
+        """
+        Making the same move that has been made already should raise an error.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2)
+
+        move = Move(from_pos, to_pos)
+        move.from_tower = Tower(1)  # value does not matter here
+
+        with self.assertRaises(RuntimeError):
+            gf.make_move(move=move)
 
     def test_make_move_to_and_from_invalid_positions(self) -> None:
         """
