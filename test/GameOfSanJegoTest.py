@@ -258,6 +258,7 @@ class MoveTest(TestCase):
         from_pos = (0, 0)
         to_pos = (0, 1)
         from_tower = Tower(structure=[0, 1])
+        from_tower_expected = Tower(structure=[0, 1])
         to_tower = Tower(1)
         gf = GameField.setup_field({
             from_pos: from_tower,
@@ -268,7 +269,7 @@ class MoveTest(TestCase):
 
         gf.make_move(move=move)
         self.assertTrue(move.already_made(), "A move should recognize it has been made")
-        self.assertEqual(move.from_tower, from_tower, "Moved tower should be stored in move object")
+        self.assertEqual(move.from_tower, from_tower_expected, "Moved tower should be stored in move object")
 
 
 class TestGameField(TestCase):
