@@ -297,12 +297,14 @@ class GameField(object):
         if top_tower is None or lower_tower is None:
             return False
 
+        # TODO avoid copying by making the move_on_top_of a method of the lower tower
+        top_tower_cpy = Tower(structure=top_tower.structure.copy())
         top_tower.move_on_top_of(lower_tower)  # only adds lower_tower to top_tower in the current implementation
         self.set_tower_at(to_pos, top_tower)
         self.set_tower_at(from_pos, None)
 
         if move is not None:
-            move.from_tower = top_tower
+            move.from_tower = top_tower_cpy
 
         return True
 
