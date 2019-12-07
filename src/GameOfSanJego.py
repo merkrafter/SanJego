@@ -306,6 +306,43 @@ class GameField(object):
 
         return True
 
+    def take_back(self, move: Move) -> None:
+        """
+        Brings the board back to the state before the move. Only works correctly when reverting the most recent move.
+        This method will raise all kinds of errors on false inputs:
+        - when trying to take back a move that has never been made before
+        - if there is a tower at the move's `from_pos` or *no* tower at the move's `to_pos`
+        - if the move's `from_tower` is not a the top part of the tower at `move.to_pos`
+        :param move: the move to revert
+        """
+        # check whether the move has been made already
+        if not move.already_made():
+            raise ValueError("move has not already been made")
+
+        # check whether the game field at from_pos is empty
+        # (tower should have been moved by move and no other towers can be moved on empty fields)
+        tower_at_from_pos = self.get_tower_at(move.from_pos)
+        if not (tower_at_from_pos is None or tower_at_from_pos.height == 0):
+            raise RuntimeError(f"tower at {move.from_pos}, which should have been moved earlier by move \"{move}\"")
+
+        # check whether there is a tower at the to_pos that is also high enough
+        tower_at_to_pos = self.get_tower_at(move.to_pos)
+        if tower_at_to_pos is None or tower_at_to_pos.height < move.from_tower.height:
+            raise RuntimeError(
+                f"tower at {move.to_pos} missing or too small, can not split to take back move \"{move}\"")
+
+        # check whether the take_back would remove the whole tower at to_pos
+        # this would mean that the given move placed a tower on an empty field (which is not permitted)
+        # Therefore, an error is raised to find bugs in the algorithm
+        if move.from_tower == tower_at_to_pos:
+            raise RuntimeError("Can not take back a whole tower")
+
+        tower_at_to_pos.detach(move.from_tower)
+        self.set_tower_at(move.from_pos, move.from_tower)
+
+        # mark the move as reversed
+        move.from_tower = None
+
     @staticmethod
     def setup_field(specs: Dict[Tuple[int, int], Tower], min_height: int = 1, min_width: int = 1) -> 'GameField':
         """
