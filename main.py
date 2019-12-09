@@ -85,7 +85,8 @@ def main(rules: str, height: int, width: int, max_player_starts: bool, max_depth
     print(f"Calculating the '{rules}' game value for a field of size {height} x {width}:")
     if verbose:
         print(game_field)
-    value, move_list = alpha_beta_search(node=start_node, depth=depth, callback=callback, trace_moves=True)
+    value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                         callback=callback, trace_moves=True)
     print(SEP_SYMBOL * SEP_LENGTH)
     print(f"Searched {callback.counter} nodes")
     print(SEP_SYMBOL * SEP_LENGTH)
