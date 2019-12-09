@@ -36,10 +36,10 @@ class GameNode(object):
         else:
             self.player = self.game_field.player2
 
-    def _children(self) -> Iterator['GameNode']:
+    def _children(self) -> Iterator[Tuple['GameNode', float]]:
         """
-        Iterates over all possible/allowed following game states.
-        :return: iterator over all following game states
+        Iterates over all possible/allowed following game states and returns those states along with their heuristics.
+        :return: iterator over all tuples of following game states and their heuristic values
         """
         count = 0
         # iterate over any position on the field
@@ -52,27 +52,36 @@ class GameNode(object):
 
                 # ... and yield any allowed moves
                 if self.rule_set.allows_move(self.player, move=move):
-                    gf = copy.deepcopy(self.game_field)
-                    gf.make_move(move=move)
                     count += 1
-                    yield GameNode(gf, self.rule_set_type, move, not self.max_player, skipped_before=False)
+                    gn = GameNode(self.game_field, self.rule_set_type, move, not self.max_player, skipped_before=False)
+                    gn.make_move()  # needs to be done here already to allow proper sorting
+                    heur_val = gn.heuristic_value()
+                    # Now the move must be taken back, because otherwise following iterations won't work.
+                    # This is inefficient as the move must be made again in the alpha_beta_search but it's still faster
+                    # than copying the board.
+                    gn.take_back_move()
+                    yield gn, heur_val
+
         if count == 0 and not self.skipped_before:  # game ends if both players can not move
             # maybe the skipping move can be done implicitly like so:
             # for child in GameNode(gf, RuleSet(gf), not self.max_player, skipped_before=True).children():
             #    yield child
             # however, this could conflict with the alpha beta search (moving player)
-            gf = copy.deepcopy(self.game_field)
-            yield GameNode(gf, self.rule_set_type, Move.skip(), not self.max_player, skipped_before=True)
+            gn = GameNode(self.game_field, self.rule_set_type, Move.skip(), not self.max_player, skipped_before=True)
+            heur_val = gn.heuristic_value()  # no need to actually make the move as it is a skip anyway
+            yield gn, heur_val
 
     def children(self) -> Iterator['GameNode']:
         """
         Iterates over all possible/allowed following game states.
         :return: iterator over all following game states
         """
+        # _children returns (child, val)
         if self.max_player:
-            return sorted(self._children(), key=lambda x: x.heuristic_value(), reverse=True)  # high to low values
+            return map(lambda x: x[0], sorted(self._children(), key=lambda x: x[1], reverse=True))  # high to low values
         else:
-            return sorted(self._children(), key=lambda x: x.heuristic_value(), reverse=False)  # low to high values
+            return map(lambda x: x[0],
+                       sorted(self._children(), key=lambda x: x[1], reverse=False))  # low to high values
 
     def heuristic_value(self) -> float:
         """
@@ -191,8 +200,10 @@ def alpha_beta_search(node: GameNode, depth: int, alpha: float = -float('inf'), 
 
         for child in node.children():
             num_children += 1
+            child.make_move()  # make move (just making this call more visible)
             _value, move_list = alpha_beta_search(child, depth - 1, alpha, beta, not maximising_player, callback, True)
             value = max(value, _value)
+            child.take_back_move()  # take back (just making this call more visible)
             if value > alpha:
                 alpha = value
                 best_move_list = move_list
@@ -223,8 +234,10 @@ def alpha_beta_search(node: GameNode, depth: int, alpha: float = -float('inf'), 
 
         for child in node.children():
             num_children += 1
+            child.make_move()  # make move (just making this call more visible)
             _value, move_list = alpha_beta_search(child, depth - 1, alpha, beta, not maximising_player, callback, True)
             value = min(value, _value)
+            child.take_back_move()  # take back (just making this call more visible)
             if value < beta:
                 beta = value
                 best_move_list = move_list
