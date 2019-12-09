@@ -83,7 +83,9 @@ class GameNode(object):
         """
         # the basic idea is to lay more weight on moves that happen in the middle of the board,
         # as they seem to be more important in terms of the outcome of the game
-        if self.move is not None:
+
+        # heuristic does only apply to real moves
+        if self.move is not None and not self.move.is_skip_move():
             x, y = self.move.from_pos
             h = self.game_field.height
             w = self.game_field.width
