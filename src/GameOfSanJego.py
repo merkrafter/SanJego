@@ -163,6 +163,13 @@ class Move(object):
             return "<skip>"
         return f"{self.from_pos} -> {self.to_pos}"
 
+    def __eq__(self, other: 'Move') -> bool:
+        """
+        Returns whether the `from_pos` and `to_pos` of self and `other` are equal.
+        """
+        return hasattr(other, "from_pos") and other.from_pos == self.from_pos and \
+               hasattr(other, "to_pos") and other.to_pos == self.to_pos
+
 
 class GameField(object):
     """
