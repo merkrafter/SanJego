@@ -17,6 +17,7 @@ class BinaryNode:
         Creates a new Node by setting the item.
         """
         self.item = item
+        self.move = None  # to be compatible to GameNode
 
     def children(self):
         """
