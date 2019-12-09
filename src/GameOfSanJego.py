@@ -148,14 +148,19 @@ class Move(object):
         Returns a string representation of this move that can be evaluated to get a Move object back.
         :return: a evaluable string representation of this move
         """
+        if self.is_skip_move():
+            return "Move.skip()"
         return f"Move({self.from_pos}, {self.to_pos})"
 
     def __str__(self) -> str:
         """
         Returns a string representation of this move in the format
-        "from_pos -> to_pos".
+        "from_pos -> to_pos"
+        if this is not a skipping move and an indicator for this being a skipping move else.
         :return: string representation of this move
         """
+        if self.is_skip_move():
+            return "<skip>"
         return f"{self.from_pos} -> {self.to_pos}"
 
 
