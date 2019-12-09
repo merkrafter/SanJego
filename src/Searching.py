@@ -148,16 +148,32 @@ class GameNode(object):
 
 
 class SearchCallback(object):
-    @abstractmethod
-    def callback(self, node: GameNode, depth: int, alpha: int, beta: int, maximising_player: bool) -> None:
+    """
+    This class serves as an abstract base class for every callback class that is suitable for the alpha beta search.
+    """
+
+    def callback(self, node: GameNode, depth: int, alpha: float, beta: float, maximising_player: bool) -> None:
+        """
+        This method will be called once at the beginning of an alpha_beta_search invocation.
+        """
         pass
 
 
 class CountCallback(SearchCallback):
+    """
+    This class implements a counter for all calls to callback().
+    """
+
     def __init__(self):
+        """
+        Creates a new CountCallback by initializing the internal `counter` with 0.
+        """
         self.counter = 0
 
-    def callback(self, node: GameNode, depth: int, alpha: int, beta: int, maximising_player: bool) -> None:
+    def callback(self, node: GameNode, depth: int, alpha: float, beta: float, maximising_player: bool) -> None:
+        """
+        Increases the internal counter by 1, ignoring all arguments to this method.
+        """
         self.counter += 1
 
 
