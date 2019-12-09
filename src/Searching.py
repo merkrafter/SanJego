@@ -116,6 +116,18 @@ class GameNode(object):
         """
         return self.game_field.value
 
+    def make_move(self) -> None:
+        """
+        Wrapper to make the move of this instance on the game_field of this instance.
+        """
+        self.game_field.make_move(move=self.move)
+
+    def take_back_move(self) -> None:
+        """
+        Wrapper to take back the move of this instance on the game_field of this instance.
+        """
+        self.game_field.take_back(self.move)
+
     def __str__(self) -> str:
         """
         Returns a string representation of this game node that contains the player to move and the game field string.

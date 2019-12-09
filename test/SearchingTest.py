@@ -39,6 +39,18 @@ class BinaryNode:
         """
         return False
 
+    def make_move(self) -> None:
+        """
+        This method does nothing but fulfill the interface of GameNode
+        """
+        pass
+
+    def take_back_move(self) -> None:
+        """
+        This method does nothing but fulfill the interface of GameNode
+        """
+        pass
+
 
 class AlphaBetaSearchTestCases(unittest.TestCase):
     def test_max_returns_root_node_at_depth_0(self):
