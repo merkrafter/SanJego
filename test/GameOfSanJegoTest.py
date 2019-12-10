@@ -371,13 +371,14 @@ class TestGameField(TestCase):
                     gf = GameField(height=2, width=2, player1=expected_player1, player2=expected_player2)
 
                     # check whether the intended players have towers on the board
-                    self.assertTrue(expected_player1 in map(lambda x: x.owner, gf.field),
+                    # TODO avoid accessing gf.field directly
+                    self.assertTrue(expected_player1 in map(lambda x: x.owner, gf.field.values()),
                                     f"player {expected_player1} should be on the board")
-                    self.assertTrue(expected_player2 in map(lambda x: x.owner, gf.field),
+                    self.assertTrue(expected_player2 in map(lambda x: x.owner, gf.field.values()),
                                     f"player {expected_player2} should be on the board")
 
                     # check whether there are towers with other owners than the given players on the board
-                    additional_players_on_board = [p for p in map(lambda x: x.owner, gf.field) if
+                    additional_players_on_board = [p for p in map(lambda x: x.owner, gf.field.values()) if
                                                    p != expected_player1 and p != expected_player2]
                     self.assertEqual([], additional_players_on_board,
                                      f"there should be no more players on the board than {expected_player1} and\

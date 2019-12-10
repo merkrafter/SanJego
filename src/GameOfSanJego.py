@@ -192,7 +192,8 @@ class GameField(object):
         self.player1 = player1
         self.player2 = player2
         player_tuple = (player1, player2)
-        self.field = [Tower(owner=player_tuple[(h + w) % 2]) for h in range(self.height) for w in range(self.width)]
+        self.field: Dict[Tuple[int, int], Tower] = \
+            {(h, w): Tower(owner=player_tuple[(h + w) % 2]) for h in range(self.height) for w in range(self.width)}
 
     # TODO make this a method of RuleSet
     @property
@@ -206,12 +207,12 @@ class GameField(object):
         highest_p1 = max(map(lambda tower: tower.height,
                              filter(
                                  lambda tower: tower is not None and tower.height > 0 and tower.owner == self.player1,
-                                 self.field)),
+                                 self.field.values())),
                          default=0)
         highest_p2 = max(map(lambda tower: tower.height,
                              filter(
                                  lambda tower: tower is not None and tower.height > 0 and tower.owner == self.player2,
-                                 self.field)),
+                                 self.field.values())),
                          default=0)
         return highest_p1 - highest_p2
 
@@ -244,11 +245,10 @@ class GameField(object):
         :param pos: specifies the position to get a tower from
         :return: a `Tower` instance, if there is a one at `pos` or `None` otherwise.
         """
-        if not (0 <= pos[0] < self.height and 0 <= pos[1] < self.width):
+        try:
+            return self.field[pos]
+        except KeyError:
             return None
-        x = pos[0]
-        y = pos[1]
-        return self.field[x * self.width + y]
 
     def set_tower_at(self, pos: (int, int), tower: Optional[Tower]) -> bool:
         """
@@ -259,17 +259,17 @@ class GameField(object):
         :param pos: the 0-indexed position to set the tower at
         :return: whether this method was successful
         """
+        # `if pos not in self.field` will not do the job as `take_back` needs to set towers to positions that do not
+        # exist anymore
         if not (0 <= pos[0] < self.height and 0 <= pos[1] < self.width):
             return False
 
-        # if the position is to be cleared, replace it with a "unit tower" so it does not break the calculation of the
-        # game value (as None would)
+        # this means clearing the specified position
         if tower is None:
-            tower = Tower(structure=[])
+            del self.field[pos]
+        else:
+            self.field[pos] = tower
 
-        x = pos[0]
-        y = pos[1]
-        self.field[x * self.width + y] = tower
         return True
 
     def make_move(self, from_pos: Optional[Tuple[int, int]] = None, to_pos: Optional[Tuple[int, int]] = None,
@@ -416,7 +416,7 @@ class GameField(object):
         """
         string_repr = ""
         max_tower_height = max(
-            map(lambda t: t.height, self.field)) * 3  # x3 because of commas and spaces and +2 because of []
+            map(lambda t: t.height, self.field.values())) * 3  # x3 because of commas and spaces
         for x in range(self.height):
             towers_in_that_row = ""
             for y in range(self.width):
