@@ -40,7 +40,7 @@ class Tower(object):
             raise AttributeError("an empty or unit tower does not have an owner")
         return self.structure[0]
 
-    def move_on_top_of(self, tower: 'Tower') -> None:
+    def attach(self, tower: 'Tower') -> None:
         """
         Adds the given tower below *this* instance. This method does not change the other `tower` instance nor does it
         check whether the move is actually allowed with the current game's rules..
@@ -315,9 +315,9 @@ class GameField(object):
         if top_tower is None or lower_tower is None:
             return False
 
-        # TODO avoid copying by making the move_on_top_of a method of the lower tower
+        # TODO avoid copying by making the attach a method of the lower tower
         top_tower_cpy = Tower(structure=top_tower.structure.copy())
-        top_tower.move_on_top_of(lower_tower)  # only adds lower_tower to top_tower in the current implementation
+        top_tower.attach(lower_tower)  # only adds lower_tower to top_tower in the current implementation
         self.set_tower_at(to_pos, top_tower)
         self.set_tower_at(from_pos, None)
 

@@ -116,7 +116,7 @@ class TestTower(TestCase):
                     lower_tower = Tower(owner=lower_owner, structure=lower_structure)
 
                     expected_height = top_tower.height + lower_tower.height
-                    top_tower.move_on_top_of(lower_tower)
+                    top_tower.attach(lower_tower)
                     actual_height = top_tower.height
                     self.assertEqual(expected_height, actual_height,
                                      f"stacked tower's height should be \
@@ -124,26 +124,26 @@ class TestTower(TestCase):
 
     def test_move_on_top_of_None_raises_exception(self) -> None:
         """
-        Passing `None` as an argument to `Tower.move_on_top_of` should raise an `ValueError` to help finding
+        Passing `None` as an argument to `Tower.attach` should raise an `ValueError` to help finding
         bugs in the algorithms.
         """
         t = Tower(1)
         with self.assertRaises(ValueError, msg="moving a tower on top of None should raise a ValueError"):
-            t.move_on_top_of(None)
+            t.attach(None)
 
     def test_move_empty_towers_raises_exception(self) -> None:
         """
-        Calling `Tower.move_on_top_of` on an empty tower or with an empty tower as the argument should raise an
+        Calling `Tower.attach` on an empty tower or with an empty tower as the argument should raise an
         `ValueError` to help finding bugs in the algorithms.
         """
         tower1 = Tower(1)
         tower2 = Tower(2)
         tower2.structure = None
         with self.assertRaises(ValueError, msg="moving a tower on top of an empty tower should raise a ValueError"):
-            tower1.move_on_top_of(tower2)
+            tower1.attach(tower2)
 
         with self.assertRaises(ValueError, msg="moving a tower on top of an empty tower should raise a ValueError"):
-            tower2.move_on_top_of(tower1)
+            tower2.attach(tower1)
 
     def test_detach_topmost_brick(self) -> None:
         """
@@ -190,9 +190,9 @@ class TestTower(TestCase):
         """
         expected_structure = [1, 2, 1]
         upper_tower = Tower(structure=[2, 1, 2])
-        prev_upper_tower = Tower(structure=[2, 1, 2])  # necessary, since move_on_top_of modifies the upper tower
+        prev_upper_tower = Tower(structure=[2, 1, 2])  # necessary, since attach modifies the upper tower
         lower_tower = Tower(structure=expected_structure)
-        upper_tower.move_on_top_of(lower_tower)
+        upper_tower.attach(lower_tower)
         lower_tower = upper_tower
         lower_tower.detach(prev_upper_tower)
         expected_tower = Tower(structure=expected_structure)
