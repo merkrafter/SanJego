@@ -282,7 +282,7 @@ class GameField(object):
         Both positions are 0-indexed and specify the row in the first component and the column in the second.
         If both a move object and explicit positions are given, the positions specified by the move objects are used.
         If a position is not specified in any way, a ValueError is raised.
-        Making a skip move will not change the move nor the game field and is considered a successful move.
+        Making a skip move will not change the move nor the game field, and is considered a successful move.
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :param move: use positions from this move instance instead of from_pos and to_pos
@@ -314,14 +314,12 @@ class GameField(object):
         if top_tower is None or lower_tower is None:
             return False
 
-        # TODO avoid copying by making the attach a method of the lower tower
-        top_tower_cpy = Tower(structure=top_tower.structure.copy())
-        top_tower.attach(lower_tower)  # only adds lower_tower to top_tower in the current implementation
-        self.set_tower_at(to_pos, top_tower)
+        # does the actual attaching of the top_tower at from_pos to the lower_tower at to_pos and frees the from_pos
+        lower_tower.attach(top_tower)
         self.set_tower_at(from_pos, None)
 
         if move is not None:
-            move.from_tower = top_tower_cpy
+            move.from_tower = top_tower
 
         return True
 
