@@ -103,9 +103,26 @@ class TestTower(TestCase):
         self.assertEqual(expected_owner, actual_owner,
                          f"owner of tower ({actual_owner}) should be equal to the topmost brick ({other_owner})")
 
-    def test_height_after_moving(self) -> None:
+    def test_attaching(self) -> None:
         """
-        After moving one tower on top of another, the resulting tower's height should be the sum of the initial towers.
+        After attaching one tower to another, the resulting tower's structure should be equal to the combined structure
+        of the former towers.
+        """
+        lower_structure = [0]
+        upper_structure = [1]
+        expected_structure = upper_structure + lower_structure  # left in list <=> top of tower
+        lower_tower = Tower(structure=lower_structure)
+        upper_tower = Tower(structure=upper_structure)
+
+        lower_tower.attach(upper_tower)
+
+        self.assertEqual(expected_structure, lower_tower.structure,
+                         f"after attaching {upper_tower} on top of {lower_tower},\
+                         the resulting tower should have the combined structure")
+
+    def test_height_after_attaching(self) -> None:
+        """
+        After attaching one tower to another, the resulting tower's height should be the sum of the initial towers.
         """
         top_owner = 1
         lower_owner = 2
@@ -116,34 +133,34 @@ class TestTower(TestCase):
                     lower_tower = Tower(owner=lower_owner, structure=lower_structure)
 
                     expected_height = top_tower.height + lower_tower.height
-                    top_tower.move_on_top_of(lower_tower)
-                    actual_height = top_tower.height
+                    lower_tower.attach(top_tower)
+                    actual_height = lower_tower.height
                     self.assertEqual(expected_height, actual_height,
                                      f"stacked tower's height should be \
                                      the sum of heights of initial towers ({expected_height}) but is {actual_height}")
 
-    def test_move_on_top_of_None_raises_exception(self) -> None:
+    def test_attach_None_raises_exception(self) -> None:
         """
-        Passing `None` as an argument to `Tower.move_on_top_of` should raise an `ValueError` to help finding
+        Passing `None` as an argument to `Tower.attach` should raise a `ValueError` to help finding
         bugs in the algorithms.
         """
         t = Tower(1)
-        with self.assertRaises(ValueError, msg="moving a tower on top of None should raise a ValueError"):
-            t.move_on_top_of(None)
+        with self.assertRaises(ValueError, msg="attaching None to a tower should raise a ValueError"):
+            t.attach(None)
 
-    def test_move_empty_towers_raises_exception(self) -> None:
+    def test_attach_empty_towers_raises_exception(self) -> None:
         """
-        Calling `Tower.move_on_top_of` on an empty tower or with an empty tower as the argument should raise an
+        Calling `Tower.attach` on an empty tower or with an empty tower as the argument should raise a
         `ValueError` to help finding bugs in the algorithms.
         """
-        tower1 = Tower(1)
-        tower2 = Tower(2)
-        tower2.structure = None
-        with self.assertRaises(ValueError, msg="moving a tower on top of an empty tower should raise a ValueError"):
-            tower1.move_on_top_of(tower2)
+        tower = Tower(1)
+        empty_tower = Tower(2)
+        empty_tower.structure = None
+        with self.assertRaises(ValueError, msg="attaching an empty tower should raise a ValueError"):
+            tower.attach(empty_tower)
 
-        with self.assertRaises(ValueError, msg="moving a tower on top of an empty tower should raise a ValueError"):
-            tower2.move_on_top_of(tower1)
+        with self.assertRaises(ValueError, msg="attaching a tower to an empty tower should raise a ValueError"):
+            empty_tower.attach(tower)
 
     def test_detach_topmost_brick(self) -> None:
         """
@@ -184,17 +201,17 @@ class TestTower(TestCase):
         expected_tower = Tower(structure=expected_structure)
         self.assertEqual(expected_tower, tower_under_test)
 
-    def test_add_and_detach(self) -> None:
+    def test_attach_and_detach(self) -> None:
         """
-        After adding and removing a tower to/from another, the lower tower should be the same in the end.
+        After attaching and detaching a tower to/from another, the lower tower should be the same in the end.
         """
         expected_structure = [1, 2, 1]
         upper_tower = Tower(structure=[2, 1, 2])
-        prev_upper_tower = Tower(structure=[2, 1, 2])  # necessary, since move_on_top_of modifies the upper tower
         lower_tower = Tower(structure=expected_structure)
-        upper_tower.move_on_top_of(lower_tower)
-        lower_tower = upper_tower
-        lower_tower.detach(prev_upper_tower)
+
+        lower_tower.attach(upper_tower)
+        lower_tower.detach(upper_tower)
+
         expected_tower = Tower(structure=expected_structure)
         self.assertEqual(expected_tower, lower_tower)
 

@@ -40,18 +40,17 @@ class Tower(object):
             raise AttributeError("an empty or unit tower does not have an owner")
         return self.structure[0]
 
-    def move_on_top_of(self, tower: 'Tower') -> None:
+    def attach(self, tower: 'Tower') -> None:
         """
-        Adds the given tower below *this* instance. This method does not change the other `tower` instance nor does it
-        check whether the move is actually allowed with the current game's rules..
-        :param tower: the Tower to add below *this* one
+        Adds the given tower on top of *this* instance. This method does not change the other `tower` instance nor does
+        it check whether the move is actually allowed with the current game's rules..
+        :param tower: the Tower to add on top of *this* one
         """
-        # TODO make this a method of the lower tower and change the GameField method accordingly; new name: attach
         if tower is None:
-            raise ValueError("can not move this tower on top of None")
+            raise ValueError("can not attach None")
         if self.structure is None or tower.structure is None:
-            raise ValueError("can not move empty towers on top of each other")
-        self.structure += tower.structure
+            raise ValueError("can not attach empty towers to each other")
+        self.structure = tower.structure + self.structure
 
     def detach(self, tower: 'Tower') -> None:
         """
@@ -283,7 +282,7 @@ class GameField(object):
         Both positions are 0-indexed and specify the row in the first component and the column in the second.
         If both a move object and explicit positions are given, the positions specified by the move objects are used.
         If a position is not specified in any way, a ValueError is raised.
-        Making a skip move will not change the move nor the game field and is considered a successful move.
+        Making a skip move will not change the move nor the game field, and is considered a successful move.
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :param move: use positions from this move instance instead of from_pos and to_pos
@@ -315,14 +314,12 @@ class GameField(object):
         if top_tower is None or lower_tower is None:
             return False
 
-        # TODO avoid copying by making the move_on_top_of a method of the lower tower
-        top_tower_cpy = Tower(structure=top_tower.structure.copy())
-        top_tower.move_on_top_of(lower_tower)  # only adds lower_tower to top_tower in the current implementation
-        self.set_tower_at(to_pos, top_tower)
+        # does the actual attaching of the top_tower at from_pos to the lower_tower at to_pos and frees the from_pos
+        lower_tower.attach(top_tower)
         self.set_tower_at(from_pos, None)
 
         if move is not None:
-            move.from_tower = top_tower_cpy
+            move.from_tower = top_tower
 
         return True
 
