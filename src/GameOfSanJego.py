@@ -42,16 +42,15 @@ class Tower(object):
 
     def attach(self, tower: 'Tower') -> None:
         """
-        Adds the given tower below *this* instance. This method does not change the other `tower` instance nor does it
-        check whether the move is actually allowed with the current game's rules..
-        :param tower: the Tower to add below *this* one
+        Adds the given tower on top of *this* instance. This method does not change the other `tower` instance nor does
+        it check whether the move is actually allowed with the current game's rules..
+        :param tower: the Tower to add on top of *this* one
         """
-        # TODO make this a method of the lower tower and change the GameField method accordingly; new name: attach
         if tower is None:
-            raise ValueError("can not move this tower on top of None")
+            raise ValueError("can not attach None")
         if self.structure is None or tower.structure is None:
-            raise ValueError("can not move empty towers on top of each other")
-        self.structure += tower.structure
+            raise ValueError("can not attach empty towers to each other")
+        self.structure = tower.structure + self.structure
 
     def detach(self, tower: 'Tower') -> None:
         """
