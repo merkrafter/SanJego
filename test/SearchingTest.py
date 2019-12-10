@@ -17,6 +17,7 @@ class BinaryNode:
         Creates a new Node by setting the item.
         """
         self.item = item
+        self.move = None  # to be compatible to GameNode
 
     def children(self):
         """
@@ -38,6 +39,18 @@ class BinaryNode:
         :return: False (as this is a dummy implementation)
         """
         return False
+
+    def make_move(self) -> None:
+        """
+        This method does nothing but fulfill the interface of GameNode
+        """
+        pass
+
+    def take_back_move(self) -> None:
+        """
+        This method does nothing but fulfill the interface of GameNode
+        """
+        pass
 
 
 class AlphaBetaSearchTestCases(unittest.TestCase):

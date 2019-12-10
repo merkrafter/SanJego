@@ -1,7 +1,9 @@
 import unittest
 
-from src.GameOfSanJego import GameField, Tower
-from src.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet
+import pytest
+
+from src.GameOfSanJego import GameField, Tower, Move
+from src.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, FreeRuleSet, MajorityRuleSet
 from src.Searching import alpha_beta_search, GameNode
 
 
@@ -153,6 +155,440 @@ class TestSanJego(unittest.TestCase):
         actual_value = alpha_beta_search(node, depth=3, maximising_player=maximising_player)  # depth 3 is enough
         self.assertEqual(expected_value, actual_value,
                          f"expected a game value of {expected_value} but got {actual_value}")
+
+
+class TestMoveLists(unittest.TestCase):
+    """
+    This test class covers (rather) long-running test cases that run whole board calculations and verify the results.
+    """
+
+    def test_base_2x2(self) -> None:
+        """
+        The optimum for a 2x2 game field with the base ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 0) -> (0, 0)
+        2: (0, 1) -> (0, 0)      <skip>
+        with a final game value of 4.
+        """
+        height = 2
+        width = 2
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 0), (0, 0)),
+                              Move((0, 1), (0, 0)), Move.skip()]
+        expected_value = 4
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, BaseRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    def test_base_2x3(self) -> None:
+        """
+        The optimum for a 2x3 game field with the base ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 2) -> (0, 2)
+        2: (0, 1) -> (0, 2)      (1, 0) -> (0, 0)
+        with a final game value of 2.
+        """
+        height = 2
+        width = 3
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (0, 2)),
+                              Move((0, 1), (0, 2)), Move((1, 0), (0, 0)),
+                              Move.skip()]
+        expected_value = 2
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, BaseRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    @pytest.mark.slow
+    def test_base_3x4(self) -> None:
+        """
+        The optimum for a 3x4 game field with the base ruleset looks like:
+        1: (1, 1) -> (1, 2)      (2, 1) -> (2, 2)
+        2: (1, 3) -> (0, 3)      (0, 1) -> (0, 0)
+        3: (1, 2) -> (0, 2)      (2, 2) -> (2, 3)
+        4: (0, 2) -> (0, 3)      (1, 0) -> (0, 0)
+        with a final game value of 2.
+        """
+        height = 3
+        width = 4
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (1, 2)), Move((2, 1), (2, 2)),
+                              Move((1, 3), (0, 3)), Move((0, 1), (0, 0)),
+                              Move((1, 2), (0, 2)), Move((2, 2), (2, 3)),
+                              Move((0, 2), (0, 3)), Move((1, 0), (0, 0)),
+                              Move.skip()]
+        expected_value = 2
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, BaseRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    def test_oppose_2x2(self) -> None:
+        """
+        The optimum for a 2x2 game field with the oppose ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 0) -> (0, 0)
+        2: (0, 1) -> (0, 0)      <skip>
+        with a final game value of 4.
+        """
+        height = 2
+        width = 2
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 0), (0, 0)),
+                              Move((0, 1), (0, 0)), Move.skip()]
+        expected_value = 4
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, MoveOnOpposingOnlyRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    def test_oppose_2x3(self) -> None:
+        """
+        The optimum for a 2x3 game field with the oppose ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 2) -> (0, 2)
+        2: (0, 1) -> (0, 2)      (1, 0) -> (0, 0)
+        with a final game value of 2.
+        """
+        height = 2
+        width = 3
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (0, 2)),
+                              Move((0, 1), (0, 2)), Move((1, 0), (0, 0)),
+                              Move.skip()]
+        expected_value = 2
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, MoveOnOpposingOnlyRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    def test_oppose_3x3(self) -> None:
+        """
+        The optimum for a 3x3 game field with the oppose ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 2) -> (0, 2)
+        2: (2, 2) -> (2, 1)      (1, 0) -> (0, 0)
+        3: (0, 1) -> (0, 0)      <skip>
+        with a final game value of 2.
+        """
+        height = 3
+        width = 3
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (0, 2)),
+                              Move((2, 2), (2, 1)), Move((1, 0), (0, 0)),
+                              Move((0, 1), (0, 0)), Move.skip()]
+        expected_value = 2
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, MoveOnOpposingOnlyRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    @pytest.mark.slow
+    def test_oppose_3x4(self) -> None:
+        """
+        The optimum for a 3x4 game field with the oppose ruleset looks like:
+        1: (2, 2) -> (2, 1)      (0, 1) -> (0, 2)
+        2: (1, 1) -> (1, 0)      (1, 2) -> (1, 3)
+        with a final game value of 0.
+        """
+        height = 3
+        width = 4
+        max_player_starts = True
+
+        expected_move_list = [Move((2, 2), (2, 1)), Move((0, 1), (0, 2)),
+                              Move((1, 1), (1, 0)), Move((1, 2), (1, 3)),
+                              Move.skip()]
+        expected_value = 0
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, MoveOnOpposingOnlyRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    def test_kings_2x2(self) -> None:
+        """
+        The optimum for a 2x2 game field with the kings ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 0) -> (0, 1)
+        2: (0, 0) -> (0, 1)      <skip>
+        with a final game value of 4.
+        """
+        height = 2
+        width = 2
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 0), (0, 1)),
+                              Move((0, 0), (0, 1)), Move.skip()]
+        expected_value = 4
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, KingsRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    def test_kings_2x3(self) -> None:
+        """
+        The optimum for a 2x3 game field with the kings ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 2) -> (0, 1)
+        2: (0, 2) -> (0, 1)      (1, 0) -> (0, 1)
+        3: (0, 0) -> (0, 1)      <skip>
+        with a final game value of 6.
+        """
+        height = 2
+        width = 3
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (0, 1)),
+                              Move((0, 2), (0, 1)), Move((1, 0), (0, 1)),
+                              Move((0, 0), (0, 1)), Move.skip()]
+        expected_value = 6
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, KingsRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    @pytest.mark.slow
+    def test_kings_3x3(self) -> None:
+        """
+        The optimum for a 3x3 game field with the kings ruleset looks like:
+        1: (2, 2) -> (1, 2)      (0, 1) -> (1, 1)
+        2: (0, 2) -> (1, 1)      (2, 1) -> (2, 0)
+        3: (1, 1) -> (1, 0)      (2, 0) -> (1, 0)
+        4: (0, 0) -> (1, 0)      <skip>
+        with a final game value of 7.
+        """
+        height = 3
+        width = 3
+        max_player_starts = True
+
+        expected_move_list = [Move((2, 2), (1, 2)), Move((0, 1), (1, 1)),
+                              Move((0, 2), (1, 1)), Move((2, 1), (2, 0)),
+                              Move((1, 1), (1, 0)), Move((2, 0), (1, 0)),
+                              Move((0, 0), (1, 0)), Move.skip()]
+        expected_value = 7
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, KingsRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    def test_free_2x2(self) -> None:
+        """
+        The optimum for a 2x2 game field with the free ruleset looks like:
+        1: (1, 1) -> (0, 1)      (0, 0) -> (0, 1)
+        with a final game value of 2.
+        """
+        height = 2
+        width = 2
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((0, 0), (0, 1)),
+                              Move.skip()]
+        expected_value = 2
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, FreeRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    def test_free_2x3(self) -> None:
+        """
+        The optimum for a 2x3 game field with the free ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 2) -> (0, 2)
+        2: (0, 1) -> (0, 2)      (1, 0) -> (0, 0)
+        with a final game value of 2.
+        """
+        height = 2
+        width = 3
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (0, 2)),
+                              Move((0, 1), (0, 2)), Move((1, 0), (0, 0)),
+                              Move.skip()]
+        expected_value = 2
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, FreeRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    @pytest.mark.slow
+    def test_free_3x3(self) -> None:
+        """
+        The optimum for a 3x3 game field with the free ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 2) -> (2, 2)
+        2: (0, 0) -> (0, 1)      (2, 1) -> (2, 2)
+        3: (0, 1) -> (0, 2)      (1, 0) -> (2, 0)
+        with a final game value of 1.
+        """
+        height = 3
+        width = 3
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (2, 2)),
+                              Move((0, 0), (0, 1)), Move((2, 1), (2, 2)),
+                              Move((0, 1), (0, 2)), Move((1, 0), (2, 0)),
+                              Move.skip()]
+        expected_value = 1
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, FreeRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    def test_majority_2x2(self) -> None:
+        """
+        The optimum for a 2x2 game field with the majority ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 0) -> (0, 0)
+        2: (0, 1) -> (0, 0)      <skip>
+        with a final game value of 4.
+        """
+        height = 2
+        width = 2
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 0), (0, 0)),
+                              Move((0, 1), (0, 0)), Move.skip()]
+        expected_value = 4
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, MajorityRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    def test_majority_2x3(self) -> None:
+        """
+        The optimum for a 2x3 game field with the majority ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 2) -> (0, 2)
+        2: (0, 1) -> (0, 2)      (1, 0) -> (0, 0)
+        with a final game value of 2.
+        """
+        height = 2
+        width = 3
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (0, 2)),
+                              Move((0, 1), (0, 2)), Move((1, 0), (0, 0)),
+                              Move.skip()]
+        expected_value = 2
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, MajorityRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
+
+    @pytest.mark.slow
+    def test_majority_3x3(self) -> None:
+        """
+        The optimum for a 3x3 game field with the majority ruleset looks like:
+        1: (1, 1) -> (0, 1)      (1, 2) -> (2, 2)
+        2: (2, 0) -> (1, 0)      (0, 1) -> (0, 2)
+        3: (1, 0) -> (0, 0)      (2, 1) -> (2, 2)
+        with a final game value of 0.
+        """
+        height = 3
+        width = 3
+        max_player_starts = True
+
+        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (2, 2)),
+                              Move((2, 0), (1, 0)), Move((0, 1), (0, 2)),
+                              Move((1, 0), (0, 0)), Move((2, 1), (2, 2)),
+                              Move.skip()]
+        expected_value = 0
+
+        game_field = GameField(height=height, width=width)
+        start_node = GameNode(game_field, MajorityRuleSet, max_player=max_player_starts)
+
+        depth = 2 * height * width + 1
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             trace_moves=True)
+
+        self.assertEqual(expected_value, value)
+        self.assertEqual(expected_move_list, move_list)
 
 
 if __name__ == '__main__':

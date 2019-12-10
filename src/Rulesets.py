@@ -1,6 +1,6 @@
 from typing import Tuple, Optional
 
-from src.GameOfSanJego import GameField, Tower
+from src.GameOfSanJego import GameField, Tower, Move
 
 
 class BaseRuleSet(object):
@@ -34,16 +34,30 @@ class BaseRuleSet(object):
         """
         return tower.owner == player
 
-    def allows_move(self, from_pos: Tuple[int, int], to_pos: Tuple[int, int], player: int) -> bool:
+    def allows_move(self, player: int, from_pos: Optional[Tuple[int, int]] = None,
+                    to_pos: Optional[Tuple[int, int]] = None, move: Optional[Move] = None) -> bool:
         """
         Decides whether the given player is allowed to make the move given by the two positions on the board.
         This basic implementation allows any two towers to be moved on top of each other if their positions meet either
         vertically or horizontally (quad neighbourhood) and the moved tower is owned by `player`.
+        If both a move object and explicit positions are given, the positions specified by the move objects are used.
+        If a position is not specified in any way, a ValueError is raised.
+        :param move: use positions from this move instance instead of from_pos and to_pos
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :param player: ID of a player that is registered in the `GameField` instance of this `RuleSet`
         :return: whether the player is allowed to make this move given this rule set
         """
+        if move is not None:
+            from_pos = move.from_pos
+            to_pos = move.to_pos
+
+        if from_pos is None:
+            raise ValueError("missing from_pos")
+
+        if to_pos is None:
+            raise ValueError("missing to_pos")
+
         # perform basic checks
         towers = self.basically_allows_move(from_pos, to_pos)
         if not towers:
@@ -98,14 +112,28 @@ class KingsRuleSet(BaseRuleSet):
     This is also known as the king's neighbourhood (derived from chess).
     """
 
-    def allows_move(self, from_pos, to_pos, player):
+    def allows_move(self, player: int, from_pos: Optional[Tuple[int, int]] = None,
+                    to_pos: Optional[Tuple[int, int]] = None, move: Optional[Move] = None) -> bool:
         """
         Allows players to move a tower into its king's neighbourhood, that is the 8 fields directly adjacent to it.
+        If both a move object and explicit positions are given, the positions specified by the move objects are used.
+        If a position is not specified in any way, a ValueError is raised.
+        :param move: use positions from this move instance instead of from_pos and to_pos
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :param player: ID of a player
         :return: whether the player is allowed to make this move given this rule set
         """
+        if move is not None:
+            from_pos = move.from_pos
+            to_pos = move.to_pos
+
+        if from_pos is None:
+            raise ValueError("missing from_pos")
+
+        if to_pos is None:
+            raise ValueError("missing to_pos")
+
         towers = self.basically_allows_move(from_pos, to_pos)
         if not towers:
             return False
@@ -125,15 +153,29 @@ class MoveOnOpposingOnlyRuleSet(BaseRuleSet):
     Using this rule set, own towers may only be moved on top of opposing towers.
     """
 
-    def allows_move(self, from_pos, to_pos, player):
+    def allows_move(self, player: int, from_pos: Optional[Tuple[int, int]] = None,
+                    to_pos: Optional[Tuple[int, int]] = None, move: Optional[Move] = None) -> bool:
         """
         Allows players to move a tower only on top of opposing towers.
+        If both a move object and explicit positions are given, the positions specified by the move objects are used.
+        If a position is not specified in any way, a ValueError is raised.
+        :param move: use positions from this move instance instead of from_pos and to_pos
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :param player: ID of a player
         :return: whether the player is allowed to make this move given this rule set
         """
-        if not super().allows_move(from_pos, to_pos, player):
+        if move is not None:
+            from_pos = move.from_pos
+            to_pos = move.to_pos
+
+        if from_pos is None:
+            raise ValueError("missing from_pos")
+
+        if to_pos is None:
+            raise ValueError("missing to_pos")
+
+        if not super().allows_move(player, from_pos, to_pos):
             return False
 
         # the above line ensures that there actually are towers at the given positions
@@ -148,14 +190,28 @@ class MajorityRuleSet(BaseRuleSet):
     Using this rule set, towers may only be moved if the player holds at least 50% of the tower's bricks.
     """
 
-    def allows_move(self, from_pos, to_pos, player):
+    def allows_move(self, player: int, from_pos: Optional[Tuple[int, int]] = None,
+                    to_pos: Optional[Tuple[int, int]] = None, move: Optional[Move] = None) -> bool:
         """
         Allows players to move a tower only if he holds at least 50% of the bricks of that tower.
+        If both a move object and explicit positions are given, the positions specified by the move objects are used.
+        If a position is not specified in any way, a ValueError is raised.
+        :param move: use positions from this move instance instead of from_pos and to_pos
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :param player: ID of a player
         :return: whether the player is allowed to make this move given this rule set
         """
+        if move is not None:
+            from_pos = move.from_pos
+            to_pos = move.to_pos
+
+        if from_pos is None:
+            raise ValueError("missing from_pos")
+
+        if to_pos is None:
+            raise ValueError("missing to_pos")
+
         towers = self.basically_allows_move(from_pos, to_pos)
         if not towers:
             return False
@@ -177,14 +233,28 @@ class FreeRuleSet(BaseRuleSet):
     Using this rule set, a player may move any tower.
     """
 
-    def allows_move(self, from_pos, to_pos, player):
+    def allows_move(self, player: int, from_pos: Optional[Tuple[int, int]] = None,
+                    to_pos: Optional[Tuple[int, int]] = None, move: Optional[Move] = None) -> bool:
         """
         Allows players to move any tower on the field.
+        If both a move object and explicit positions are given, the positions specified by the move objects are used.
+        If a position is not specified in any way, a ValueError is raised.
+        :param move: use positions from this move instance instead of from_pos and to_pos
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
         :param player: ID of a player
         :return: whether the player is allowed to make this move given this rule set
         """
+        if move is not None:
+            from_pos = move.from_pos
+            to_pos = move.to_pos
+
+        if from_pos is None:
+            raise ValueError("missing from_pos")
+
+        if to_pos is None:
+            raise ValueError("missing to_pos")
+
         # only perform basic checks ...
         if not self.basically_allows_move(from_pos, to_pos):
             return False

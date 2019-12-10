@@ -46,12 +46,24 @@ class Tower(object):
         check whether the move is actually allowed with the current game's rules..
         :param tower: the Tower to add below *this* one
         """
-        # TODO make this a method of the lower tower and change the GameField method accordingly
+        # TODO make this a method of the lower tower and change the GameField method accordingly; new name: attach
         if tower is None:
             raise ValueError("can not move this tower on top of None")
         if self.structure is None or tower.structure is None:
             raise ValueError("can not move empty towers on top of each other")
         self.structure += tower.structure
+
+    def detach(self, tower: 'Tower') -> None:
+        """
+        Removes the given tower from the top of this (self) tower
+        """
+        if tower is None:
+            raise ValueError("can not detach None from this tower")
+
+        if not self.structure[:len(tower.structure)] == tower.structure:
+            raise ValueError(f"{tower} is not on top of {self}")
+
+        del self.structure[:len(tower.structure)]
 
     @property
     def height(self) -> int:
@@ -90,6 +102,73 @@ class Tower(object):
         :return: a human-readable string representation of this tower
         """
         return f"{self.structure}"
+
+
+class Move(object):
+    """
+    This class stores information about one move in a game of San Jego.
+    It does not contain much logic in order to keep it simple.
+    In addition to the from and to positions, moves store a reference of the moved tower
+    after making the move to allow taking a move back.
+    """
+
+    def __init__(self, from_pos: (int, int), to_pos: (int, int)) -> None:
+        """
+        Creates a new Move object by setting the source and target positions
+        :param from_pos: specifies the tower to move
+        :param to_pos: specifies the tower to move on top of
+        """
+        self.from_pos = from_pos
+        self.to_pos = to_pos
+        self.from_tower: Optional[Tower] = None
+
+    def already_made(self) -> bool:
+        """
+        A move counts as being made when the `from_tower` reference is not `None` anymore.
+        :return: whether this move has already been made
+        """
+        return self.from_tower is not None
+
+    @staticmethod
+    def skip() -> "Move":
+        """
+        This is a convenience method that allows more readable code when creating skipping moves.
+        :return: a move that indicates skipping
+        """
+        return Move(from_pos=(-1, -1), to_pos=(-1, -1))
+
+    def is_skip_move(self) -> bool:
+        """
+        :return: whether this move is a skipping move
+        """
+        return self.from_pos == (-1, -1) == self.to_pos
+
+    def __repr__(self) -> str:
+        """
+        Returns a string representation of this move that can be evaluated to get a Move object back.
+        :return: a evaluable string representation of this move
+        """
+        if self.is_skip_move():
+            return "Move.skip()"
+        return f"Move({self.from_pos}, {self.to_pos})"
+
+    def __str__(self) -> str:
+        """
+        Returns a string representation of this move in the format
+        "from_pos -> to_pos"
+        if this is not a skipping move and an indicator for this being a skipping move else.
+        :return: string representation of this move
+        """
+        if self.is_skip_move():
+            return "<skip>"
+        return f"{self.from_pos} -> {self.to_pos}"
+
+    def __eq__(self, other: 'Move') -> bool:
+        """
+        Returns whether the `from_pos` and `to_pos` of self and `other` are equal.
+        """
+        return hasattr(other, "from_pos") and other.from_pos == self.from_pos and \
+               hasattr(other, "to_pos") and other.to_pos == self.to_pos
 
 
 class GameField(object):
@@ -194,17 +273,37 @@ class GameField(object):
         self.field[x * self.width + y] = tower
         return True
 
-    def make_move(self, from_pos: (int, int), to_pos: (int, int)) -> bool:
+    def make_move(self, from_pos: Optional[Tuple[int, int]] = None, to_pos: Optional[Tuple[int, int]] = None,
+                  move: Optional[Move] = None) -> bool:
         """
         Moves the tower at `from_pos` on top of the tower at `to_pos` and returns whether this was successful.
         The method does not check whether this move is legal under the current rules.
         It does, however, check whether this move is technically possible, i.e. both positions are distinct and
         contain towers.
         Both positions are 0-indexed and specify the row in the first component and the column in the second.
+        If both a move object and explicit positions are given, the positions specified by the move objects are used.
+        If a position is not specified in any way, a ValueError is raised.
+        Making a skip move will not change the move nor the game field and is considered a successful move.
         :param from_pos: specifies the tower to move
         :param to_pos: specifies the tower to move on top of
+        :param move: use positions from this move instance instead of from_pos and to_pos
         :return: whether the move was successful
         """
+        if move is not None:
+            if move.is_skip_move():
+                return True
+
+            if move.already_made():
+                raise RuntimeError("move has already been made")
+            from_pos = move.from_pos
+            to_pos = move.to_pos
+
+        if from_pos is None:
+            raise ValueError("missing from_pos")
+
+        if to_pos is None:
+            raise ValueError("missing to_pos")
+
         # check whether both positions are different
         if from_pos == to_pos:
             return False
@@ -216,10 +315,57 @@ class GameField(object):
         if top_tower is None or lower_tower is None:
             return False
 
+        # TODO avoid copying by making the move_on_top_of a method of the lower tower
+        top_tower_cpy = Tower(structure=top_tower.structure.copy())
         top_tower.move_on_top_of(lower_tower)  # only adds lower_tower to top_tower in the current implementation
         self.set_tower_at(to_pos, top_tower)
         self.set_tower_at(from_pos, None)
+
+        if move is not None:
+            move.from_tower = top_tower_cpy
+
         return True
+
+    def take_back(self, move: Move) -> None:
+        """
+        Brings the board back to the state before the move. Only works correctly when reverting the most recent move.
+        This method will raise all kinds of errors on false inputs:
+        - when trying to take back a move that has never been made before
+        - if there is a tower at the move's `from_pos` or *no* tower at the move's `to_pos`
+        - if the move's `from_tower` is not a the top part of the tower at `move.to_pos`
+        Taking back a skip move will not change the move nor the game field.
+        :param move: the move to revert
+        """
+        if move.is_skip_move():
+            return
+
+        # check whether the move has been made already
+        if not move.already_made():
+            raise ValueError("move has not already been made")
+
+        # check whether the game field at from_pos is empty
+        # (tower should have been moved by move and no other towers can be moved on empty fields)
+        tower_at_from_pos = self.get_tower_at(move.from_pos)
+        if not (tower_at_from_pos is None or tower_at_from_pos.height == 0):
+            raise RuntimeError(f"tower at {move.from_pos}, which should have been moved earlier by move \"{move}\"")
+
+        # check whether there is a tower at the to_pos that is also high enough
+        tower_at_to_pos = self.get_tower_at(move.to_pos)
+        if tower_at_to_pos is None or tower_at_to_pos.height < move.from_tower.height:
+            raise RuntimeError(
+                f"tower at {move.to_pos} missing or too small, can not split to take back move \"{move}\"")
+
+        # check whether the take_back would remove the whole tower at to_pos
+        # this would mean that the given move placed a tower on an empty field (which is not permitted)
+        # Therefore, an error is raised to find bugs in the algorithm
+        if move.from_tower == tower_at_to_pos:
+            raise RuntimeError("Can not take back a whole tower")
+
+        tower_at_to_pos.detach(move.from_tower)
+        self.set_tower_at(move.from_pos, move.from_tower)
+
+        # mark the move as reversed
+        move.from_tower = None
 
     @staticmethod
     def setup_field(specs: Dict[Tuple[int, int], Tower], min_height: int = 1, min_width: int = 1) -> 'GameField':
