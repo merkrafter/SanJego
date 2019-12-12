@@ -43,7 +43,8 @@ class GameNode(object):
         """
         count = 0
         # iterate over any position on the field
-        for from_pos in [(x, y) for x in range(self.game_field.height) for y in range(self.game_field.width)]:
+        # list() needed to copy all the field's positions; they are modified by making moves
+        for from_pos in list(self.game_field.field):
 
             # iterate over the king's neighbourhood of from_pos...
             for to_pos in [(x, y) for x in [from_pos[0] - 1, from_pos[0], from_pos[0] + 1]
