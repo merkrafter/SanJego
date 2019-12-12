@@ -1,9 +1,9 @@
 import unittest
 
-from src import Searching
+from searching import Searching
 from sanjego.GameOfSanJego import Tower, GameField
 from rulesets.Rulesets import BaseRuleSet
-from src.Searching import GameNode
+from searching.Searching import GameNode
 
 
 class BinaryNode:

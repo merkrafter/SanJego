@@ -4,7 +4,7 @@ import pytest
 
 from sanjego.GameOfSanJego import GameField, Tower, Move
 from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, FreeRuleSet, MajorityRuleSet
-from src.Searching import alpha_beta_search, GameNode
+from searching.Searching import alpha_beta_search, GameNode
 
 
 class TestSanJego(unittest.TestCase):

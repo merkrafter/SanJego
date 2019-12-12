@@ -6,7 +6,7 @@ from sacred.observers import FileStorageObserver
 
 from sanjego.GameOfSanJego import GameField, Move
 from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, MajorityRuleSet, FreeRuleSet
-from src.Searching import alpha_beta_search, CountCallback, GameNode
+from searching.Searching import alpha_beta_search, CountCallback, GameNode
 
 ex = Experiment()
 ex.observers.append(FileStorageObserver('results'))
