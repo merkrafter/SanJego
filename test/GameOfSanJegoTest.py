@@ -1,7 +1,7 @@
 import unittest
 from unittest import TestCase
 
-from sanjego.GameOfSanJego import Tower, GameField, Move
+from sanjego.gameobjects import Tower, GameField, Move
 
 UNSAFE_MODE = False  # allows the execution of tests that contain eval expressions
 

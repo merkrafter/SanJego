@@ -372,6 +372,7 @@ class GameField(object):
         :param min_width: the minimum width of the field
         :return: a GameField with the specified towers set
         """
+        # TODO can possibly be simplified by a great amount
         if min_height < 1 or min_width < 1:
             raise ValueError(f"both min_height (given: {min_height}) and min_width ({min_width}) must be at least 1")
 

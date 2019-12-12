@@ -1,6 +1,6 @@
 from typing import Tuple, Optional
 
-from sanjego.GameOfSanJego import GameField, Tower, Move
+from sanjego.gameobjects import GameField, Tower, Move
 
 
 class BaseRuleSet(object):

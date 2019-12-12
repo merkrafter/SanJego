@@ -1,6 +1,6 @@
 from typing import Iterator, List, Tuple, Union
 
-from sanjego.GameOfSanJego import GameField, Move
+from sanjego.gameobjects import GameField, Move
 from rulesets.Rulesets import BaseRuleSet
 
 

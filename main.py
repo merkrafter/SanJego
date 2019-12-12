@@ -4,7 +4,7 @@ from typing import List
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
 
-from sanjego.GameOfSanJego import GameField, Move
+from sanjego.gameobjects import GameField, Move
 from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, MajorityRuleSet, FreeRuleSet
 from searching.Searching import alpha_beta_search, CountCallback, GameNode
 
