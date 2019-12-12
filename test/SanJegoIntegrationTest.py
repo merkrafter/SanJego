@@ -2,7 +2,7 @@ import unittest
 
 import pytest
 
-from src.GameOfSanJego import GameField, Tower, Move
+from sanjego.GameOfSanJego import GameField, Tower, Move
 from src.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, FreeRuleSet, MajorityRuleSet
 from src.Searching import alpha_beta_search, GameNode
 

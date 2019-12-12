@@ -1,7 +1,7 @@
 import unittest
 
 from src import Searching
-from src.GameOfSanJego import Tower, GameField
+from sanjego.GameOfSanJego import Tower, GameField
 from src.Rulesets import BaseRuleSet
 from src.Searching import GameNode
 

@@ -1,8 +1,6 @@
-import copy
-from abc import abstractmethod
-from typing import Iterator, List, Tuple, Dict, Union
+from typing import Iterator, List, Tuple, Union
 
-from src.GameOfSanJego import GameField, Move
+from sanjego.GameOfSanJego import GameField, Move
 from src.Rulesets import BaseRuleSet
 
 
