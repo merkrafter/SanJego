@@ -6,7 +6,7 @@ from sacred.observers import FileStorageObserver
 
 from sanjego.gameobjects import GameField, Move
 from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, MajorityRuleSet, FreeRuleSet
-from searching.Searching import alpha_beta_search
+from searching.methods import alpha_beta_search
 from searching.util import GameNode, CountCallback
 
 ex = Experiment()
