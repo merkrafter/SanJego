@@ -1,7 +1,7 @@
 from typing import Iterator, List, Tuple, Union
 
 from sanjego.GameOfSanJego import GameField, Move
-from src.Rulesets import BaseRuleSet
+from rulesets.Rulesets import BaseRuleSet
 
 
 class GameNode(object):
