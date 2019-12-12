@@ -204,16 +204,11 @@ class GameField(object):
         :return: difference in height of both players' highest towers
         """
         # max(height(tower of that respective player))
+        # filters can assume that no None and zero-height towers will be stored in this field's dict
         highest_p1 = max(map(lambda tower: tower.height,
-                             filter(
-                                 lambda tower: tower is not None and tower.height > 0 and tower.owner == self.player1,
-                                 self.field.values())),
-                         default=0)
+                             filter(lambda tower: tower.owner == self.player1, self.field.values())), default=0)
         highest_p2 = max(map(lambda tower: tower.height,
-                             filter(
-                                 lambda tower: tower is not None and tower.height > 0 and tower.owner == self.player2,
-                                 self.field.values())),
-                         default=0)
+                             filter(lambda tower: tower.owner == self.player2, self.field.values())), default=0)
         return highest_p1 - highest_p2
 
     def __float__(self) -> float:
