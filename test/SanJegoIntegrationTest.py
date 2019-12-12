@@ -494,10 +494,14 @@ class TestMoveLists(unittest.TestCase):
         width = 3
         max_player_starts = True
 
-        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (2, 2)),
-                              Move((0, 0), (0, 1)), Move((2, 1), (2, 2)),
-                              Move((0, 1), (0, 2)), Move((1, 0), (2, 0)),
-                              Move.skip()]
+        # there are multiple ways to achieve the game value
+        expected_move_list = [[Move((1, 1), (0, 1)), Move((1, 2), (2, 2)),
+                               Move((0, 0), (0, 1)), Move((2, 1), (2, 2)),
+                               Move((0, 1), (0, 2)), Move((1, 0), (2, 0)),
+                               Move.skip()],
+                              [Move((1, 1), (0, 1)), Move((1, 2), (2, 2)),
+                               Move((1, 0), (0, 0)), Move((2, 1), (2, 2)),
+                               Move((0, 1), (0, 0)), Move.skip()]]
         expected_value = 1
 
         game_field = GameField(height=height, width=width)
@@ -508,7 +512,7 @@ class TestMoveLists(unittest.TestCase):
                                              trace_moves=True)
 
         self.assertEqual(expected_value, value)
-        self.assertEqual(expected_move_list, move_list)
+        self.assertIn(move_list, expected_move_list)
 
     def test_majority_2x2(self) -> None:
         """
