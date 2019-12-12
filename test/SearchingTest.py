@@ -3,7 +3,7 @@ import unittest
 from searching import Searching
 from sanjego.gameobjects import Tower, GameField
 from rulesets.Rulesets import BaseRuleSet
-from searching.Searching import GameNode
+from searching.util import GameNode
 
 
 class BinaryNode:
