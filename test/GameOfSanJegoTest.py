@@ -1,7 +1,7 @@
 import unittest
 from unittest import TestCase
 
-from src.GameOfSanJego import Tower, GameField, RuleSet, GameNode
+from src.GameOfSanJego import Tower, GameField, Move
 
 UNSAFE_MODE = False  # allows the execution of tests that contain eval expressions
 
@@ -103,9 +103,26 @@ class TestTower(TestCase):
         self.assertEqual(expected_owner, actual_owner,
                          f"owner of tower ({actual_owner}) should be equal to the topmost brick ({other_owner})")
 
-    def test_height_after_moving(self) -> None:
+    def test_attaching(self) -> None:
         """
-        After moving one tower on top of another, the resulting tower's height should be the sum of the initial towers.
+        After attaching one tower to another, the resulting tower's structure should be equal to the combined structure
+        of the former towers.
+        """
+        lower_structure = [0]
+        upper_structure = [1]
+        expected_structure = upper_structure + lower_structure  # left in list <=> top of tower
+        lower_tower = Tower(structure=lower_structure)
+        upper_tower = Tower(structure=upper_structure)
+
+        lower_tower.attach(upper_tower)
+
+        self.assertEqual(expected_structure, lower_tower.structure,
+                         f"after attaching {upper_tower} on top of {lower_tower},\
+                         the resulting tower should have the combined structure")
+
+    def test_height_after_attaching(self) -> None:
+        """
+        After attaching one tower to another, the resulting tower's height should be the sum of the initial towers.
         """
         top_owner = 1
         lower_owner = 2
@@ -116,34 +133,87 @@ class TestTower(TestCase):
                     lower_tower = Tower(owner=lower_owner, structure=lower_structure)
 
                     expected_height = top_tower.height + lower_tower.height
-                    top_tower.move_on_top_of(lower_tower)
-                    actual_height = top_tower.height
+                    lower_tower.attach(top_tower)
+                    actual_height = lower_tower.height
                     self.assertEqual(expected_height, actual_height,
                                      f"stacked tower's height should be \
                                      the sum of heights of initial towers ({expected_height}) but is {actual_height}")
 
-    def test_move_on_top_of_None_raises_exception(self) -> None:
+    def test_attach_None_raises_exception(self) -> None:
         """
-        Passing `None` as an argument to `Tower.move_on_top_of` should raise an `ValueError` to help finding
+        Passing `None` as an argument to `Tower.attach` should raise a `ValueError` to help finding
         bugs in the algorithms.
         """
         t = Tower(1)
-        with self.assertRaises(ValueError, msg="moving a tower on top of None should raise a ValueError"):
-            t.move_on_top_of(None)
+        with self.assertRaises(ValueError, msg="attaching None to a tower should raise a ValueError"):
+            t.attach(None)
 
-    def test_move_empty_towers_raises_exception(self) -> None:
+    def test_attach_empty_towers_raises_exception(self) -> None:
         """
-        Calling `Tower.move_on_top_of` on an empty tower or with an empty tower as the argument should raise an
+        Calling `Tower.attach` on an empty tower or with an empty tower as the argument should raise a
         `ValueError` to help finding bugs in the algorithms.
         """
-        tower1 = Tower(1)
-        tower2 = Tower(2)
-        tower2.structure = None
-        with self.assertRaises(ValueError, msg="moving a tower on top of an empty tower should raise a ValueError"):
-            tower1.move_on_top_of(tower2)
+        tower = Tower(1)
+        empty_tower = Tower(2)
+        empty_tower.structure = None
+        with self.assertRaises(ValueError, msg="attaching an empty tower should raise a ValueError"):
+            tower.attach(empty_tower)
 
-        with self.assertRaises(ValueError, msg="moving a tower on top of an empty tower should raise a ValueError"):
-            tower2.move_on_top_of(tower1)
+        with self.assertRaises(ValueError, msg="attaching a tower to an empty tower should raise a ValueError"):
+            empty_tower.attach(tower)
+
+    def test_detach_topmost_brick(self) -> None:
+        """
+        A tower should be able to detach its (existing) topmost brick.
+        """
+        expected_structure = [2, 1]
+        topmost_brick = [1]
+        tower_under_test = Tower(structure=topmost_brick + expected_structure)
+        tower_under_test.detach(Tower(structure=topmost_brick))
+        expected_tower = Tower(structure=expected_structure)
+        self.assertEqual(expected_tower, tower_under_test)
+
+    def test_detach_non_existing_brick(self) -> None:
+        """
+        A tower should raise an error when trying to detach its non-existing topmost brick.
+        """
+        with self.assertRaises(ValueError):
+            tower_under_test = Tower(structure=[1, 2, 1])
+            tower_under_test.detach(Tower(structure=[2]))  # not the topmost brick
+
+    def test_detach_None(self) -> None:
+        """
+        A tower should raise an error when trying to detach `None`.
+        """
+        with self.assertRaises(ValueError):
+            tower_under_test = Tower(structure=[1, 2, 1])
+            tower_under_test.detach(None)
+
+    def test_detach_empty(self) -> None:
+        """
+        When trying to remove an empty tower, nothing should happen.
+        """
+        expected_structure = [2, 1]
+        tower_under_test = Tower(structure=expected_structure)
+        tower_to_detach = Tower(1)
+        tower_to_detach.structure = []  # make the tower empty
+        tower_under_test.detach(tower_to_detach)
+        expected_tower = Tower(structure=expected_structure)
+        self.assertEqual(expected_tower, tower_under_test)
+
+    def test_attach_and_detach(self) -> None:
+        """
+        After attaching and detaching a tower to/from another, the lower tower should be the same in the end.
+        """
+        expected_structure = [1, 2, 1]
+        upper_tower = Tower(structure=[2, 1, 2])
+        lower_tower = Tower(structure=expected_structure)
+
+        lower_tower.attach(upper_tower)
+        lower_tower.detach(upper_tower)
+
+        expected_tower = Tower(structure=expected_structure)
+        self.assertEqual(expected_tower, lower_tower)
 
     def test__eq__for_logically_equal_towers(self) -> None:
         """
@@ -179,6 +249,70 @@ class TestTower(TestCase):
         tower = Tower(1)
         self.assertEqual(eval(tower.__repr__()), tower, "The evaluation of a tower's __repr__() method should be equal\
                                                         to that tower.")
+
+
+class MoveTest(TestCase):
+    def test_new_move_has_not_been_made(self) -> None:
+        """
+        A newly created move should not indicate it has been made already.
+        """
+        from_pos = (0, 0)  # values irrelevant
+        to_pos = (0, 1)  # values irrelevant
+        move = Move(from_pos, to_pos)
+        self.assertFalse(move.already_made(), "newly created move should not indicate it has been made already")
+
+    def test_skipping_move_creation(self) -> None:
+        """
+        The construction method for skipping moves should work together with `is_skipping_move`.
+        """
+        move = Move.skip()
+        self.assertTrue(move.is_skip_move(), "Creation of a skipping move should actually create one")
+
+    def test_make_move_sets_affected_tower(self) -> None:
+        """
+        Making a move should set the moved tower so that the move can be reversed.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        from_tower = Tower(structure=[0, 1])
+        from_tower_expected = Tower(structure=[0, 1])
+        to_tower = Tower(1)
+        gf = GameField.setup_field({
+            from_pos: from_tower,
+            to_pos: to_tower
+        })
+
+        move = Move(from_pos, to_pos)
+
+        gf.make_move(move=move)
+        self.assertTrue(move.already_made(), "A move should recognize it has been made")
+        self.assertEqual(move.from_tower, from_tower_expected, "Moved tower should be stored in move object")
+
+    def test_making_two_moves_sets_tower_correctly(self) -> None:
+        """
+        Make two consecutive moves with the same tower. After that, the Move object for the first move should not have a
+        changed from_tower attribute, preventing the use of a reference in the Move object that can be modified later.
+        """
+        move1 = Move(from_pos=(0, 0), to_pos=(0, 1))
+        move2 = Move(from_pos=(0, 1), to_pos=(0, 2))
+        self.assertEqual(move1.to_pos, move2.from_pos, "Misconfigured test: moves should be connected")
+
+        tower1 = Tower(structure=[0, 1])
+        tower2 = Tower(structure=[1, 1])
+        tower3 = Tower(structure=[1, 0, 1])
+
+        expected_from_tower = Tower(structure=[0, 1])
+        self.assertEqual(expected_from_tower, tower1, "Misconfigured test: expected tower must be equal to first tower")
+
+        gf = GameField.setup_field({
+            move1.from_pos: tower1,
+            move1.to_pos: tower2,
+            move2.to_pos: tower3
+        })
+
+        gf.make_move(move=move1)
+        gf.make_move(move=move2)
+        self.assertEqual(move1.from_tower, expected_from_tower, "First move should store first moved tower")
 
 
 class TestGameField(TestCase):
@@ -237,13 +371,14 @@ class TestGameField(TestCase):
                     gf = GameField(height=2, width=2, player1=expected_player1, player2=expected_player2)
 
                     # check whether the intended players have towers on the board
-                    self.assertTrue(expected_player1 in map(lambda x: x.owner, gf.field),
+                    # TODO avoid accessing gf.field directly
+                    self.assertTrue(expected_player1 in map(lambda x: x.owner, gf.field.values()),
                                     f"player {expected_player1} should be on the board")
-                    self.assertTrue(expected_player2 in map(lambda x: x.owner, gf.field),
+                    self.assertTrue(expected_player2 in map(lambda x: x.owner, gf.field.values()),
                                     f"player {expected_player2} should be on the board")
 
                     # check whether there are towers with other owners than the given players on the board
-                    additional_players_on_board = [p for p in map(lambda x: x.owner, gf.field) if
+                    additional_players_on_board = [p for p in map(lambda x: x.owner, gf.field.values()) if
                                                    p != expected_player1 and p != expected_player2]
                     self.assertEqual([], additional_players_on_board,
                                      f"there should be no more players on the board than {expected_player1} and\
@@ -378,7 +513,7 @@ class TestGameField(TestCase):
                         self.assertFalse(gf.set_tower_at(pos=(x, y), tower=some_tower),
                                          "Setting a tower to an invalid position should return False")
 
-    def test_make_move(self) -> None:
+    def test_make_move_with_explicit_positions(self) -> None:
         """
         Making a valid move should communicate that this operation was successful.
         """
@@ -388,6 +523,45 @@ class TestGameField(TestCase):
 
         successful: bool = gf.make_move(from_pos, to_pos)
         self.assertTrue(successful, "Making a valid move should return True")
+
+    def test_prohibit_making_move_twice(self) -> None:
+        """
+        Making the same move that has been made already should raise an error.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2)
+
+        move = Move(from_pos, to_pos)
+        move.from_tower = Tower(1)  # value does not matter here
+
+        with self.assertRaises(RuntimeError):
+            gf.make_move(move=move)
+
+    def test_making_skip_move(self) -> None:
+        """
+        Making a skip move should do nothing.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2)
+        expected_gf = GameField(1, 2)
+
+        move = Move.skip()
+
+        gf.make_move(move=move)
+        self.assertEqual(expected_gf.get_tower_at(from_pos), gf.get_tower_at(from_pos),
+                         "Making a skip move should not change the game field")
+        self.assertEqual(expected_gf.get_tower_at(to_pos), gf.get_tower_at(to_pos),
+                         "Making a skip move should not change the game field")
+        self.assertIsNone(move.from_tower, "Making a skip move should not set the moved tower")
+
+    def test_making_skip_move_returns_true(self) -> None:
+        """
+        Making a skip move should return true, indicating success.
+        """
+        gf = GameField(1, 2)
+        self.assertTrue(gf.make_move(move=Move.skip()), "Making a skip move should return true, indicating success")
 
     def test_make_move_to_and_from_invalid_positions(self) -> None:
         """
@@ -414,11 +588,12 @@ class TestGameField(TestCase):
         successful: bool = gf.make_move(from_pos=pos, to_pos=pos)
         self.assertFalse(successful, "Trying to move a tower from and to the same position should return False")
 
-    def test_moves_towers_correctly(self) -> None:
+    def test_moves_towers_correctly_with_explicit_positions(self) -> None:
         """
         Moving a tower should remove a tower from the 'source' position and set a combined tower at the target position.
         It is free for the implementation whether "remove" means setting to `None` or just insert a unit tower of
         height 0.
+        This test case uses explicit positions instead of a Move object.
         """
         player1 = 1
         player2 = 2
@@ -443,6 +618,221 @@ class TestGameField(TestCase):
         actual_tower = gf.get_tower_at(to_pos)
         self.assertEqual(expected_tower, actual_tower, f"Expected combined tower ({expected_tower}) at {to_pos} after\
                          move but found {actual_tower}")
+
+    def test_moves_towers_correctly_with_move_object(self) -> None:
+        """
+        Moving a tower should remove a tower from the 'source' position and set a combined tower at the target position.
+        It is free for the implementation whether "remove" means setting to `None` or just insert a unit tower of
+        height 0.
+        This test case uses a Move object instead of explicit positions.
+        """
+        player1 = 1
+        player2 = 2
+        top_tower = Tower(structure=[player1])
+        lower_tower = Tower(structure=[player2])
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2, player1=player1, player2=player2)
+        gf.set_tower_at(from_pos, top_tower)
+        gf.set_tower_at(to_pos, lower_tower)
+
+        move = Move(from_pos, to_pos)
+
+        gf.make_move(move=move)
+
+        # check source position
+        tower_at_from_pos = gf.get_tower_at(from_pos)
+        self.assertTrue(tower_at_from_pos is None or tower_at_from_pos.height == 0,
+                        f"the source position {from_pos} should contain an empty or unit tower after move\
+                        but found {tower_at_from_pos}")
+
+        # check target position
+        expected_tower = Tower(structure=[player1, player2])
+        actual_tower = gf.get_tower_at(to_pos)
+        self.assertEqual(expected_tower, actual_tower, f"Expected combined tower ({expected_tower}) at {to_pos} after\
+                         move but found {actual_tower}")
+
+    def test_move_without_position_data_raises_error(self) -> None:
+        """
+        Trying to make a move without providing position data (either with explicit positions or moves) should raise an
+        error.
+        """
+        gf = GameField(1, 2)
+
+        with self.assertRaises(ValueError):
+            gf.make_move()
+
+    def test_move_with_missing_explicit_position_data_raises_error(self) -> None:
+        """
+        Trying to make a move without providing a move object but with only one explicit position should raise an error.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2)
+
+        with self.assertRaises(ValueError):
+            gf.make_move(from_pos=from_pos, to_pos=None)
+
+        with self.assertRaises(ValueError):
+            gf.make_move(from_pos=None, to_pos=to_pos)
+
+    def test_move_object_has_precedence_over_explicit_positions(self) -> None:
+        """
+        If both a move and explicit positions are given to GameField.make_move, the move object's positions should be
+        the ones used.
+        """
+        upper_tower_id = 1
+        lower_tower_id = 2
+
+        # idea:
+        # [1] [ ]
+        # [2] [ ]
+        # after the move, [2] should be moved while [1] should still be at (0,0)
+        # NOTE THAT it is not possible to move towers to empty spots, hence artificial towers are inserted
+        # at (0,1) and (1,1)
+        from_pos_explicit = (0, 0)
+        to_pos_explicit = (0, 1)
+        from_pos_move = (1, 0)
+        to_pos_move = (1, 1)
+
+        gf = GameField.setup_field({
+            from_pos_explicit: Tower(upper_tower_id),
+            from_pos_move: Tower(lower_tower_id),
+
+            # irrelevant; only here because towers can only be moved on top of others
+            to_pos_explicit: Tower(1),
+            to_pos_move: Tower(1)
+        })
+
+        move = Move(from_pos_move, to_pos_move)
+        gf.make_move(from_pos=from_pos_explicit, to_pos=to_pos_explicit, move=move)
+
+        # check whether the upper tower was NOT moved
+        self.assertEqual(upper_tower_id, gf.get_tower_at(from_pos_explicit).owner,
+                         "explicitly specified tower should not be moved when move object was given")
+        self.assertEqual(1, gf.get_tower_at(to_pos_explicit).height,
+                         "explicitly specified tower should not be moved when move object was given")
+
+        # check whether the lower tower WAS moved
+        self.assertTrue(gf.get_tower_at(from_pos_move) is None or gf.get_tower_at(from_pos_move).height == 0,
+                        "move-specified tower should be moved when move object was given")
+        self.assertEqual(lower_tower_id, gf.get_tower_at(to_pos_move).owner,
+                         "move-specified tower should be moved when move object was given")
+
+    def test_take_back(self) -> None:
+        """
+        A game field should be able to take back a move.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        from_brick = [2]
+        to_brick = [1]
+
+        game_field = GameField.setup_field({to_pos: Tower(structure=from_brick + to_brick)})  # no tower at from_pos
+        move = Move(from_pos, to_pos)
+        move.from_tower = Tower(structure=from_brick)
+        game_field.take_back(move)
+        expected_game_field = GameField.setup_field(
+            {from_pos: Tower(structure=from_brick), to_pos: Tower(structure=to_brick)})
+        self.assertEqual(expected_game_field.get_tower_at(from_pos), game_field.get_tower_at(from_pos))
+        self.assertEqual(expected_game_field.get_tower_at(to_pos), game_field.get_tower_at(to_pos))
+
+    def test_take_back_resets_move(self) -> None:
+        """
+        After the `take_back` method, a move should not be marked as already been made.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        moved_brick = [0]
+        game_field = GameField.setup_field({to_pos: Tower(structure=moved_brick + [2])})  # no tower at from_pos
+        move = Move(from_pos, to_pos)
+        move.from_tower = Tower(structure=moved_brick)
+
+        self.assertTrue(move.already_made())
+        game_field.take_back(move)
+        self.assertFalse(move.already_made())
+
+    def test_take_back_fails_on_new_move(self) -> None:
+        """
+        The `take_back` method should not allow taking back a move that has not been made yet.
+        """
+        game_field = GameField.setup_field({(0, 1): Tower(2)})
+        move = Move(from_pos=(0, 0), to_pos=(0, 1))
+        self.assertFalse(move.already_made(), "misconfigured test: move should not be marked as already been made")
+        with self.assertRaises(ValueError):
+            game_field.take_back(move)
+
+    def test_take_back_does_not_allow_tower_at_from_pos(self) -> None:
+        """
+        The `take_back` method should not allow a tower at `from_pos`; this should be empty.
+        """
+        game_field = GameField(1, 2)  # from_pos (0,0) has a tower on it
+        move = Move(from_pos=(0, 0), to_pos=(0, 1))
+        move.from_tower = Tower(2)
+        with self.assertRaises(RuntimeError):
+            game_field.take_back(move)
+
+    def test_take_back_does_not_allow_None_at_to_pos(self) -> None:
+        """
+        The `take_back` method should force a tower at `to_pos`.
+        """
+        game_field = GameField.setup_field({(0, 0): Tower(0)}, min_width=2)  # to_pos (0,1) has no tower on it
+        move = Move(from_pos=(0, 0), to_pos=(0, 1))
+        move.from_tower = Tower(2)  # exact value does not matter; only makes sure the move counts as been made
+        with self.assertRaises(RuntimeError):
+            game_field.take_back(move)
+
+    def test_take_back_does_not_allow_wrong_upper_tower(self) -> None:
+        """
+        The `take_back` method should not allow taking back an `upper_tower` that is not *actually* on top.
+        """
+        game_field = GameField.setup_field({(0, 1): Tower(2)})  # from_pos (0,0) has no tower on it
+        move = Move(from_pos=(0, 0), to_pos=(0, 1))
+        move.from_tower = Tower(1)  # not on top of the tower at (0,1)
+        with self.assertRaises(ValueError):
+            game_field.take_back(move)
+
+    def test_take_back_does_not_allow_taking_back_complete_tower(self) -> None:
+        """
+        The `take_back` method should not allow taking back a complete tower as this would imply that the tower was
+        moved to an empty square.
+        """
+        game_field = GameField(1, 2)
+        move = Move(from_pos=(0, 0), to_pos=(0, 1))
+        move.from_tower = game_field.get_tower_at(move.to_pos)
+        with self.assertRaises(RuntimeError):
+            game_field.take_back(move)
+
+    def test_take_back_skip_move(self) -> None:
+        """
+        Taking back a skip move should not do anything.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        gf = GameField(1, 2)
+        expected_gf = GameField(1, 2)
+
+        move = Move.skip()
+
+        gf.take_back(move=move)
+        self.assertEqual(expected_gf.get_tower_at(from_pos), gf.get_tower_at(from_pos),
+                         "Taking back a skip move should not change the game field")
+        self.assertEqual(expected_gf.get_tower_at(to_pos), gf.get_tower_at(to_pos),
+                         "Taking back a skip move should not change the game field")
+
+    def test_move_and_taking_back(self) -> None:
+        """
+        After making and then taking back a move, the field should be the same as before.
+        """
+        from_pos = (0, 0)
+        to_pos = (0, 1)
+        game_field = GameField(1, 2)
+        prev_game_field = GameField(1, 2)  # equal to game_field
+        move = Move(from_pos=from_pos, to_pos=to_pos)
+        game_field.make_move(move=move)
+        game_field.take_back(move)
+        self.assertEqual(prev_game_field.get_tower_at(from_pos), game_field.get_tower_at(from_pos))
+        self.assertEqual(prev_game_field.get_tower_at(to_pos), game_field.get_tower_at(to_pos))
 
     def test__eq__(self) -> None:
         """
@@ -471,165 +861,6 @@ class TestGameField(TestCase):
             (0, 0): Tower(owner=0),
         })
         self.assertNotEqual(gf1, gf2, "both game fields should not be considered equal")
-
-
-class TestGameNode(TestCase):
-    def test_children_of_1x1_field(self) -> None:
-        """
-        A game node should not yield any real children (that is: only skipping) if it contains a 1x1 game field.
-        """
-        gf = GameField(1, 1)
-        rs = RuleSet(gf)
-        for is_max_player in [True, False]:
-            with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
-                node = GameNode(gf, rs, max_player=is_max_player)
-                children = list(node.children())
-                self.assertEqual(1, len(children), f"there should be exactly 1 move (skip), but found {len(children)}")
-                child = children[0]
-                self.assertEqual(gf, child.game_field, "skipping should not alter the game field")
-                grandchildren = list(child.children())
-                self.assertEqual(0, len(grandchildren), f"there should be no moves, but found {grandchildren}")
-
-    def test_children_without_allowed_move(self) -> None:
-        """
-        A game node without allowed moves should not have any real children (that is: only skipping).
-        """
-        player1 = 0
-        player2 = 1
-        gf = GameField(3, 3)
-        # clear field first
-        for pos in [(x, y) for x in range(3) for y in range(3)]:
-            gf.set_tower_at(pos, None)
-
-        # set two towers that can not be moved onto each other
-        gf = GameField.setup_field({
-            (0, 0): Tower(owner=player1),
-            (2, 2): Tower(owner=player2)
-        })
-
-        rs = RuleSet(gf)
-        for is_max_player in [True, False]:
-            with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
-                node = GameNode(gf, rs, max_player=is_max_player)
-                children = list(node.children())
-                self.assertEqual(1, len(children), f"there should be exactly 1 move (skip), but found {len(children)}")
-                child = children[0]
-                self.assertEqual(gf, child.game_field, "skipping should not alter the game field")
-                grandchildren = list(child.children())
-                self.assertEqual(0, len(grandchildren), f"there should be no moves, but found {grandchildren}")
-
-    def test_children_with_one_possible_move(self) -> None:
-        """
-        A game node with one possible move should only have a single child. There are no disallowed moves in this test
-        case.
-        """
-        player1 = 0
-        player2 = 1
-        gf = GameField(3, 3)
-        # clear field first
-        for pos in [(x, y) for x in range(3) for y in range(3)]:
-            gf.set_tower_at(pos, None)
-
-        # set two towers that can not be moved onto each other
-        gf = GameField.setup_field({
-            (0, 0): Tower(owner=player1),
-            (1, 1): Tower(owner=player2)
-        })
-
-        rs = RuleSet(gf)
-        for is_max_player in [True, False]:
-            with self.subTest(f"as {('min', 'max')[is_max_player]} player"):
-                node = GameNode(gf, rs, max_player=is_max_player)
-                children = list(node.children())
-                self.assertEqual(1, len(children), f"this node should have only one child but found {children}")
-
-    def test_children_with_one_allowed_move(self) -> None:
-        """
-        A game node with one allowed move should only have a single child. There are other moves that are disallowed
-        by the rule set in this test case.
-        """
-        player1 = 0
-        player2 = 1
-
-        # set tower constellation to allow one move:
-        # (0,0) -> (1,1)
-        gf = GameField.setup_field({
-            (0, 0): Tower(owner=player1),
-            (0, 1): Tower(structure=[player1] + [player2] * 2),  # player 1 can not move here
-            (1, 1): Tower(owner=player2)
-        })
-
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs)
-        children = list(node.children())
-        self.assertEqual(1, len(children), f"this node should have only one child but found {children}")
-
-    def test_children_with_two_allowed_moves(self) -> None:
-        """
-        A game node with two allowed moves should have two children. There is no other move that is disallowed
-        in this test case.
-        """
-        player1 = 0
-        player2 = 1
-
-        # set tower constellation to allow two moves:
-        # (1,1) -> (0,0) and
-        # (1,1) -> (0,1)
-        gf = GameField.setup_field({
-            (0, 0): Tower(owner=player1),
-            (0, 1): Tower(structure=[player1] * 2 + [player2]),  # player 2 can not move this
-            (1, 1): Tower(owner=player2)
-        })
-
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs, max_player=False)
-        children = list(node.children())
-        self.assertEqual(2, len(children), f"this node should have two children but found {children}")
-
-    def test_children_with_three_allowed_moves(self) -> None:
-        """
-        A game node with three allowed moves should have three children. There is no other move that is disallowed
-        in this test case.
-        """
-        player1 = 0
-        player2 = 1
-
-        # set tower constellation to allow three moves:
-        # (1,1) -> (0,0),
-        # (1,1) -> (0,1) and
-        # (0,1) -> (0,0)
-        gf = GameField.setup_field({
-            (0, 0): Tower(owner=player1),
-            (0, 1): Tower(structure=[player1] + [player2] * 2),  # note: player 2 can move this
-            (1, 1): Tower(owner=player2)
-        })
-
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs, max_player=False)
-        children = list(node.children())
-        self.assertEqual(3, len(children), f"this node should have three children but found {children}")
-
-    def test_considers_skipping(self) -> None:
-        """
-        The game node should consider skipping a move, if there is no allowed move for that active player but the
-        opponent can still move.
-        """
-        player1 = 0
-        player2 = 1
-        maximising_player = True
-
-        # [0] | [0, 1, 1] | [1]
-        gf = GameField.setup_field({
-            (0, 0): Tower(owner=player1),  # (0,0) -> (0,1) is illegal
-            (0, 1): Tower(structure=[player1] + [player2] * 2),  # player1 may not move this
-            (0, 2): Tower(owner=player2)
-        })
-
-        rs = RuleSet(gf)
-        node = GameNode(gf, rs, max_player=maximising_player)
-        children = list(node.children())
-        self.assertEqual(1, len(children), f"there should be exactly 1 move (skip), but found {len(children)}")
-        self.assertEqual(gf, children[0].game_field, "skipping should not alter the game field")
 
 
 if __name__ == "__main__":
