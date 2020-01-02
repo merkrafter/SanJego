@@ -1,4 +1,4 @@
-name: Build sanjego docker image
+name: Build and publish sanjego Docker image
 
 on:
   pull_request:
@@ -17,3 +17,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag merkrafter/sanjego:$(date +%F-%s)
+    - name: Log in into Docker image registry
+      run: docker login docker.pkg.github.com --username merkrafter
+    - name: Publish Docker image
+      run: docker push docker.pkg.github.com/merkrafter/sanjego/IMAGE_NAME:VERSION
