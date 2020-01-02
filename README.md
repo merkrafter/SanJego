@@ -1,4 +1,4 @@
-![](https://github.com/merkrafter/SanJego/workflows/.github/workflows/pythonapp.yml/badge.svg?branch=development)
+![](https://github.com/merkrafter/SanJego/workflows/Main/badge.svg?)
 
 # SanJego
 This project examines the game of San Jego. Information on how this game works can be found in the project's wiki.
