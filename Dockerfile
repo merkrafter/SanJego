@@ -16,10 +16,8 @@ COPY rulesets rulesets
 COPY searching searching
 
 # set up dependencies
-COPY requirements.txt .
 RUN pip install --user --upgrade pip && \
-    pip install --user -r requirements.txt && \
-    rm requirements.txt
+    pip install --user sacred
 
 # create volume directory explicitly to avoid root owner
 RUN mkdir results
