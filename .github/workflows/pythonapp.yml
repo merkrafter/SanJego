@@ -26,7 +26,7 @@ jobs:
       run: |
         pip install flake8
         # since main uses a sacred config function, it has several "unused" variables
-        flake8 --per-file-ignores="main.py:F841" --max-line-length=120 --statistic
+        flake8 --per-file-ignores="main.py:F841" --max-line-length=120 --statistic main.py sanjego searching test rulesets
     - name: Test with pytest
       run: |
         pip install pytest
