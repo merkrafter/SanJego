@@ -4,9 +4,10 @@ from typing import List
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
 
-from src.GameOfSanJego import GameField, Move
-from src.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, MajorityRuleSet, FreeRuleSet
-from src.Searching import alpha_beta_search, CountCallback, GameNode
+from sanjego.gameobjects import GameField, Move
+from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, MajorityRuleSet, FreeRuleSet
+from searching.methods import alpha_beta_search
+from searching.util import GameNode, CountCallback
 
 ex = Experiment()
 ex.observers.append(FileStorageObserver('results'))

@@ -1,6 +1,27 @@
 from typing import Tuple, Optional
 
-from src.GameOfSanJego import GameField, Tower, Move
+from sanjego.gameobjects import GameField, Tower, Move
+
+
+def check_quad_neighbourhood(from_pos: Tuple[int, int], to_pos: Tuple[int, int]) -> bool:
+    """
+    Check whether both positions lie in a quad neighbourhood of each other.
+    :param from_pos: specifies the tower to move
+    :param to_pos: specifies the tower to move on top of
+    :return: whether both positions lie in a quad neighbourhood of each other
+    """
+    # check movement rule (quad neighbourhood) using manhattan distance
+    return abs(from_pos[0] - to_pos[0]) + abs(from_pos[1] - to_pos[1]) <= 1
+
+
+def check_player_is_owner(tower: Tower, player: int) -> bool:
+    """
+    Check whether the given player is the owner of the tower.
+    :param tower: the tower to check
+    :param player: the player that should be the owner of the tower
+    :return: whether the given player is the owner of the tower
+    """
+    return tower.owner == player
 
 
 class BaseRuleSet(object):
@@ -14,25 +35,6 @@ class BaseRuleSet(object):
         :param game_field: the game field that the decisions are based on
         """
         self.game_field = game_field
-
-    def check_quad_neighbourhood(self, from_pos: Tuple[int, int], to_pos: Tuple[int, int]) -> bool:
-        """
-        Check whether both positions lie in a quad neighbourhood of each other.
-        :param from_pos: specifies the tower to move
-        :param to_pos: specifies the tower to move on top of
-        :return: whether both positions lie in a quad neighbourhood of each other
-        """
-        # check movement rule (quad neighbourhood) using manhattan distance
-        return abs(from_pos[0] - to_pos[0]) + abs(from_pos[1] - to_pos[1]) <= 1
-
-    def check_player_is_owner(self, tower: Tower, player: int) -> bool:
-        """
-        Check whether the given player is the owner of the tower.
-        :param tower: the tower to check
-        :param player: the player that should be the owner of the tower
-        :return: whether the given player is the owner of the tower
-        """
-        return tower.owner == player
 
     def allows_move(self, player: int, from_pos: Optional[Tuple[int, int]] = None,
                     to_pos: Optional[Tuple[int, int]] = None, move: Optional[Move] = None) -> bool:
@@ -64,11 +66,11 @@ class BaseRuleSet(object):
             return False
 
         # check whether the tower-to-move belongs to the player that wants to move it
-        if not self.check_player_is_owner(towers[0], player):
+        if not check_player_is_owner(towers[0], player):
             return False
 
         # check whether both lie in a quad neighbourhood of each other
-        if not self.check_quad_neighbourhood(from_pos, to_pos):
+        if not check_quad_neighbourhood(from_pos, to_pos):
             return False
 
         return True
@@ -138,7 +140,7 @@ class KingsRuleSet(BaseRuleSet):
         if not towers:
             return False
 
-        if not self.check_player_is_owner(towers[0], player):
+        if not check_player_is_owner(towers[0], player):
             return False
 
         # both coordinates may differ by at most 1
@@ -216,7 +218,7 @@ class MajorityRuleSet(BaseRuleSet):
         if not towers:
             return False
 
-        if not self.check_quad_neighbourhood(from_pos, to_pos):
+        if not check_quad_neighbourhood(from_pos, to_pos):
             return False
 
         # the above line ensures that there actually are towers at the given positions

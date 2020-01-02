@@ -167,7 +167,7 @@ class Move(object):
         Returns whether the `from_pos` and `to_pos` of self and `other` are equal.
         """
         return hasattr(other, "from_pos") and other.from_pos == self.from_pos and \
-               hasattr(other, "to_pos") and other.to_pos == self.to_pos
+            hasattr(other, "to_pos") and other.to_pos == self.to_pos
 
 
 class GameField(object):
@@ -372,6 +372,7 @@ class GameField(object):
         :param min_width: the minimum width of the field
         :return: a GameField with the specified towers set
         """
+        # TODO can possibly be simplified by a great amount
         if min_height < 1 or min_width < 1:
             raise ValueError(f"both min_height (given: {min_height}) and min_width ({min_width}) must be at least 1")
 

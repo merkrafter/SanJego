@@ -2,9 +2,10 @@ import unittest
 
 import pytest
 
-from src.GameOfSanJego import GameField, Tower, Move
-from src.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, FreeRuleSet, MajorityRuleSet
-from src.Searching import alpha_beta_search, GameNode
+from sanjego.gameobjects import GameField, Tower, Move
+from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, FreeRuleSet, MajorityRuleSet
+from searching.methods import alpha_beta_search
+from searching.util import GameNode
 
 
 class TestSanJego(unittest.TestCase):

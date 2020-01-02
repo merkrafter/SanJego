@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from src.GameOfSanJego import GameField, Tower, Move
-from src.Rulesets import BaseRuleSet, KingsRuleSet, MajorityRuleSet, FreeRuleSet, MoveOnOpposingOnlyRuleSet
+from sanjego.gameobjects import GameField, Tower, Move
+from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MajorityRuleSet, FreeRuleSet, MoveOnOpposingOnlyRuleSet
 
 
 class TestBaseRuleSet(TestCase):

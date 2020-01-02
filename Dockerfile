@@ -11,13 +11,13 @@ WORKDIR /home/sanjego
 # copy source code
 # --chown is not available in my current docker version
 COPY main.py .
-COPY src src
+COPY sanjego sanjego
+COPY rulesets rulesets
+COPY searching searching
 
 # set up dependencies
-COPY requirements.txt .
 RUN pip install --user --upgrade pip && \
-    pip install --user -r requirements.txt && \
-    rm requirements.txt
+    pip install --user sacred
 
 # create volume directory explicitly to avoid root owner
 RUN mkdir results
