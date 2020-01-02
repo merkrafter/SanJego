@@ -1,0 +1,24 @@
+.gitignore
+
+# experiment-related
+results/
+results_moves/
+graphics
+presentation
+profiling
+
+# unnecessary sources
+test
+util
+pytest.ini
+
+# python-related
+__pycache__/
+venv/
+.coverage
+
+# pycharm-related
+.idea/
+
+# vim-related
+**.swp
