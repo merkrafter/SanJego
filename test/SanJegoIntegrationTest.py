@@ -2,11 +2,9 @@ import unittest
 
 import pytest
 
-from sanjego.gameobjects import GameField, Tower, Move
-from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet
+from sanjego.gameobjects import Tower, Move
 from searching import gamefabric
 from searching.methods import alpha_beta_search
-from searching.util import GameNode
 
 
 class TestSanJego(unittest.TestCase):
@@ -36,27 +34,27 @@ class TestSanJego(unittest.TestCase):
         player1 = 0
         player2 = 1
 
-        gf = GameField.setup_field({
-            # first column
-            (1, 0): Tower(structure=[player2] * 2 + [player1]),  # (1,0) -> (2,0) is not possible because of same owners
-            (2, 0): Tower(owner=player2),
-            # next column; separated with a blank column
-            (1, 2): Tower(structure=[player1] * 3),  # (1,2) -> (2,2) not possible because of same owners
-            (2, 2): Tower(owner=player1)
-        })
-
         for maximising_player in [True, False]:
-            if maximising_player:
-                gf.set_tower_at((0, 1), Tower(structure=[player1] + [player2] * 2))
-            else:
-                gf.set_tower_at((0, 1), Tower(structure=[player2] + [player1] * 2))
 
             # field visually
             #         | [x,y,y] |           x=0 and y=1 if it's player 0's turn and vice versa
             # [1,1,0] |         | [0,0,0]
             # [1]     |         | [0]
+            game_field_specs = {
+                # first column
+                (1, 0): Tower(structure=[player2] * 2 + [player1]),
+                # (1,0) -> (2,0) is not possible because of same owners
+                (2, 0): Tower(owner=player2),
+                # next column; separated with a blank column
+                (1, 2): Tower(structure=[player1] * 3),  # (1,2) -> (2,2) not possible because of same owners
+                (2, 2): Tower(owner=player1)
+            }
+            if maximising_player:
+                game_field_specs[(0, 1)] = Tower(structure=[player1] + [player2] * 2)
+            else:
+                game_field_specs[(0, 1)] = Tower(structure=[player2] + [player1] * 2)
 
-            node = GameNode(gf, MoveOnOpposingOnlyRuleSet, max_player=maximising_player)
+            gf, node = gamefabric.fabricate("oppose", 3, 3, maximising_player, game_field_specs)
             expected_value = node.value()
             # depth 0: this node; depth 1: skipped move;
             # depth 2: move of respective opponent that would change game value, hence not covered in this test
@@ -72,14 +70,14 @@ class TestSanJego(unittest.TestCase):
         player1 = 0
         player2 = 1
         # [0] | [1]
-        gf = GameField.setup_field({
+        game_field_specs = {
             (0, 0): Tower(owner=player1),
             (0, 1): Tower(owner=player2)
-        })
+        }
 
         expected_values = (-2, 2)  # (min starts, max starts)
         for maximising_player in [True, False]:
-            node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
+            gf, node = gamefabric.fabricate("base", 1, 2, maximising_player, game_field_specs)
             expected_value = expected_values[maximising_player]
             for depth in range(1, 5):  # depth 0 would only calculate the current value (==0)
                 with self.subTest(f"depth {depth} as {('min', 'max')[maximising_player]}"):
@@ -96,13 +94,13 @@ class TestSanJego(unittest.TestCase):
 
         # [0] |     | [1]
         #     | [1] |
-        gf = GameField.setup_field({
+        game_field_specs = {
             (0, 0): Tower(owner=player1),
             (0, 2): Tower(owner=player2),
             (1, 1): Tower(owner=player2)
-        })
+        }
 
-        node = GameNode(gf, KingsRuleSet, max_player=maximising_player)
+        gf, node = gamefabric.fabricate("kings", 2, 3, maximising_player, game_field_specs)
         expected_value = -3
         for depth in range(2, 5):  # depth < 2 would only not calculate the correct value
             with self.subTest(f"depth {depth} as {('min', 'max')[maximising_player]}"):
@@ -118,16 +116,16 @@ class TestSanJego(unittest.TestCase):
         player2 = 1
         # [0] | [0]   | [0]
         #     | [1,1] |
-        gf = GameField.setup_field({
+        game_field_specs = {
             (0, 0): Tower(owner=player1),
             (0, 1): Tower(owner=player1),
             (0, 2): Tower(owner=player2),
             (1, 1): Tower(owner=player2)
-        })
+        }
 
         expected_values = (-3, 3)  # (min starts, max starts)
         for maximising_player in [True, False]:
-            node = GameNode(gf, MoveOnOpposingOnlyRuleSet, max_player=maximising_player)
+            gf, node = gamefabric.fabricate("oppose", 2, 3, maximising_player, game_field_specs)
             expected_value = expected_values[maximising_player]
             for depth in range(3, 5):  # depth < 3 would only not calculate the correct value
                 with self.subTest(f"depth {depth} as {('min', 'max')[maximising_player]}"):
@@ -144,15 +142,15 @@ class TestSanJego(unittest.TestCase):
         maximising_player = True
 
         # [0] | [0, 1, 1] | [1]
-        gf = GameField.setup_field({
+        game_field_specs = {
             (0, 0): Tower(owner=player1),  # (0,0) -> (0,1) is illegal
             (0, 1): Tower(structure=[player1] + [player2] * 2),  # player1 may not move this
             (0, 2): Tower(owner=player2)
-        })
+        }
         self.assertTrue(maximising_player, "misconfigured test: it should be player1's (max) move")
 
         expected_value = 4
-        node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
+        gf, node = gamefabric.fabricate("base", 1, 3, maximising_player, game_field_specs)
         actual_value = alpha_beta_search(node, depth=3, maximising_player=maximising_player)  # depth 3 is enough
         self.assertEqual(expected_value, actual_value,
                          f"expected a game value of {expected_value} but got {actual_value}")
