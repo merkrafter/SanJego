@@ -1,7 +1,17 @@
-from typing import Iterator, Tuple
+from typing import Iterator, Tuple, Generator
 
 from rulesets.Rulesets import BaseRuleSet
 from sanjego.gameobjects import GameField, Move
+
+
+def kings_neighbourhood(pos: Tuple[int, int]) -> Generator[Tuple[int, int], None, None]:
+    """
+    Given a position `pos` this function generates all positions in a king's neighbourhood around `pos`.
+    :param pos: a position given by a tuple
+    """
+    for to_pos in [(x, y) for x in [pos[0] - 1, pos[0], pos[0] + 1]
+                   for y in [pos[1] - 1, pos[1], pos[1] + 1]]:
+        yield to_pos
 
 
 class GameNode(object):
@@ -16,6 +26,8 @@ class GameNode(object):
         """
         Creates a new `GameNode` by setting the game field, rule set and player given as arguments.
         If `player` is omitted, it is set to `game_field`'s `player1` attribute.
+        The default neighbourhood function for the children method is the king's neighbourhood. If this is not
+        appropriate (or necessary) change it.
         :param skipped_before: for internal use only; is `True` if this is a skipping move
         :param game_field:
         :param rule_set_type: a subtype of BaseRuleSet (or BaseRuleSet itself)
@@ -29,6 +41,7 @@ class GameNode(object):
         self.rule_set_type = rule_set_type
         self.rule_set = rule_set_type(game_field)
         self.max_player = max_player
+        self.neighbourhood = kings_neighbourhood
         if self.max_player:
             self.player = self.game_field.player1
         else:
@@ -45,8 +58,7 @@ class GameNode(object):
         for from_pos in list(self.game_field.field):
 
             # iterate over the king's neighbourhood of from_pos...
-            for to_pos in [(x, y) for x in [from_pos[0] - 1, from_pos[0], from_pos[0] + 1]
-                           for y in [from_pos[1] - 1, from_pos[1], from_pos[1] + 1]]:
+            for to_pos in self.neighbourhood(from_pos):
                 move = Move(from_pos, to_pos)
 
                 # ... and yield any allowed moves
