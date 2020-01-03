@@ -4,11 +4,10 @@ from typing import List
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
 
-import searching
-from sanjego.gameobjects import GameField, Move
-from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, MajorityRuleSet, FreeRuleSet
+from sanjego.gameobjects import Move
+from searching import gamefabric
 from searching.methods import alpha_beta_search
-from searching.util import GameNode, CountCallback
+from searching.util import CountCallback
 
 ex = Experiment()
 ex.observers.append(FileStorageObserver('results'))
@@ -21,14 +20,14 @@ SEP_LENGTH = 25
 @ex.config
 def config():
     # game relevant
-    rules = 'base'
-    height = 1
-    width = 1
-    max_player_starts = True
-    max_depth = float('inf')
+    rules = 'base'              # the rule set that will be used
+    height = 1                  # height of the game field
+    width = 1                   # width of the game field
+    max_player_starts = True    # whether the maximising player (top left corner) makes the first move
+    max_depth = float('inf')    # the amount of consecutive half-moves that will be evaluated at most
 
     # additional configs
-    verbose = False
+    verbose = False             # whether to print debug information
 
 
 def print_move_list(move_list: List[Move], max_player: bool):
@@ -57,48 +56,32 @@ def print_move_list(move_list: List[Move], max_player: bool):
 
 @ex.automain
 def main(rules: str, height: int, width: int, max_player_starts: bool, max_depth: int, verbose: bool):
-    RULES = {
-        'base': BaseRuleSet,
-        'kings': KingsRuleSet,
-        'oppose': MoveOnOpposingOnlyRuleSet,
-        'majority': MajorityRuleSet,
-        'free': FreeRuleSet
-    }
+    try:
+        game_field, start_node = gamefabric.fabricate(rules, height, width, max_player_starts)
 
-    if rules not in RULES:
-        sys.stderr.write(f"'{rules}' not recognised. Allowed rules are: ")
-        sys.stderr.write(", ".join(RULES.keys()))
-        sys.stderr.write("\n")
+        # Each time a player moves, the number of towers on the field is reduced by 1.
+        # If in the worst case only one player is able to move, the game is over in at most 2*size_of_the_field moves.
+        # ('*2' because the necessary skip of the over player accounts for the depth as well.)
+        depth = min(2 * height * width + 1, max_depth)
+
+        callback = CountCallback()
+
+        # run the actual experiment
+        print(SEP_SYMBOL * SEP_LENGTH)
+        print(f"Calculating the '{rules}' game value for a field of size {height} x {width}:")
+        if verbose:
+            print(game_field)
+        value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
+                                             callback=callback, trace_moves=True)
+        print(SEP_SYMBOL * SEP_LENGTH)
+        print(f"Searched {callback.counter} nodes")
+        print(SEP_SYMBOL * SEP_LENGTH)
+        print("Optimal moves:")
+        print_move_list(move_list, max_player_starts)
+        print(SEP_SYMBOL * SEP_LENGTH)
+
+        return value
+
+    except RuntimeError:
+        sys.stderr.write(f"'{rules}' not recognised.\n")
         exit(1)
-
-    # create the necessary objects
-    game_field = GameField(height=height, width=width)
-    if RULES[rules] == KingsRuleSet:
-        start_node = GameNode(game_field, RULES[rules], max_player=max_player_starts,
-                              neighbourhood=searching.util.kings_neighbourhood)
-    else:
-        start_node = GameNode(game_field, RULES[rules], max_player=max_player_starts,
-                              neighbourhood=searching.util.quad_neighbourhood)
-
-    # Each time a player moves, the number of towers on the field is reduced by 1.
-    # If in the worst case only one player is able to move, the game is over in at most 2*size_of_the_field moves.
-    # ('*2' because the necessary skip of the over player accounts for the depth as well.)
-    depth = min(2 * height * width + 1, max_depth)
-
-    callback = CountCallback()
-
-    # run the actual experiment
-    print(SEP_SYMBOL * SEP_LENGTH)
-    print(f"Calculating the '{rules}' game value for a field of size {height} x {width}:")
-    if verbose:
-        print(game_field)
-    value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
-                                         callback=callback, trace_moves=True)
-    print(SEP_SYMBOL * SEP_LENGTH)
-    print(f"Searched {callback.counter} nodes")
-    print(SEP_SYMBOL * SEP_LENGTH)
-    print("Optimal moves:")
-    print_move_list(move_list, max_player_starts)
-    print(SEP_SYMBOL * SEP_LENGTH)
-
-    return value

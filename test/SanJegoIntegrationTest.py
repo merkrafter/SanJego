@@ -2,10 +2,9 @@ import unittest
 
 import pytest
 
-from sanjego.gameobjects import GameField, Tower, Move
-from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, FreeRuleSet, MajorityRuleSet
+from sanjego.gameobjects import Tower, Move
+from searching import gamefabric
 from searching.methods import alpha_beta_search
-from searching.util import GameNode
 
 
 class TestSanJego(unittest.TestCase):
@@ -19,8 +18,7 @@ class TestSanJego(unittest.TestCase):
         """
         maximising_player = True
 
-        gf = GameField(1, 1)
-        node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
+        gf, node = gamefabric.fabricate("base", height=1, width=1, max_player_starts=maximising_player)
         expected_value = node.value()
         for depth in range(5):
             with self.subTest(f"depth {depth}"):
@@ -36,27 +34,27 @@ class TestSanJego(unittest.TestCase):
         player1 = 0
         player2 = 1
 
-        gf = GameField.setup_field({
-            # first column
-            (1, 0): Tower(structure=[player2] * 2 + [player1]),  # (1,0) -> (2,0) is not possible because of same owners
-            (2, 0): Tower(owner=player2),
-            # next column; separated with a blank column
-            (1, 2): Tower(structure=[player1] * 3),  # (1,2) -> (2,2) not possible because of same owners
-            (2, 2): Tower(owner=player1)
-        })
-
         for maximising_player in [True, False]:
-            if maximising_player:
-                gf.set_tower_at((0, 1), Tower(structure=[player1] + [player2] * 2))
-            else:
-                gf.set_tower_at((0, 1), Tower(structure=[player2] + [player1] * 2))
 
             # field visually
             #         | [x,y,y] |           x=0 and y=1 if it's player 0's turn and vice versa
             # [1,1,0] |         | [0,0,0]
             # [1]     |         | [0]
+            game_field_specs = {
+                # first column
+                (1, 0): Tower(structure=[player2] * 2 + [player1]),
+                # (1,0) -> (2,0) is not possible because of same owners
+                (2, 0): Tower(owner=player2),
+                # next column; separated with a blank column
+                (1, 2): Tower(structure=[player1] * 3),  # (1,2) -> (2,2) not possible because of same owners
+                (2, 2): Tower(owner=player1)
+            }
+            if maximising_player:
+                game_field_specs[(0, 1)] = Tower(structure=[player1] + [player2] * 2)
+            else:
+                game_field_specs[(0, 1)] = Tower(structure=[player2] + [player1] * 2)
 
-            node = GameNode(gf, MoveOnOpposingOnlyRuleSet, max_player=maximising_player)
+            gf, node = gamefabric.fabricate("oppose", 3, 3, maximising_player, game_field_specs)
             expected_value = node.value()
             # depth 0: this node; depth 1: skipped move;
             # depth 2: move of respective opponent that would change game value, hence not covered in this test
@@ -72,14 +70,14 @@ class TestSanJego(unittest.TestCase):
         player1 = 0
         player2 = 1
         # [0] | [1]
-        gf = GameField.setup_field({
+        game_field_specs = {
             (0, 0): Tower(owner=player1),
             (0, 1): Tower(owner=player2)
-        })
+        }
 
         expected_values = (-2, 2)  # (min starts, max starts)
         for maximising_player in [True, False]:
-            node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
+            gf, node = gamefabric.fabricate("base", 1, 2, maximising_player, game_field_specs)
             expected_value = expected_values[maximising_player]
             for depth in range(1, 5):  # depth 0 would only calculate the current value (==0)
                 with self.subTest(f"depth {depth} as {('min', 'max')[maximising_player]}"):
@@ -96,13 +94,13 @@ class TestSanJego(unittest.TestCase):
 
         # [0] |     | [1]
         #     | [1] |
-        gf = GameField.setup_field({
+        game_field_specs = {
             (0, 0): Tower(owner=player1),
             (0, 2): Tower(owner=player2),
             (1, 1): Tower(owner=player2)
-        })
+        }
 
-        node = GameNode(gf, KingsRuleSet, max_player=maximising_player)
+        gf, node = gamefabric.fabricate("kings", 2, 3, maximising_player, game_field_specs)
         expected_value = -3
         for depth in range(2, 5):  # depth < 2 would only not calculate the correct value
             with self.subTest(f"depth {depth} as {('min', 'max')[maximising_player]}"):
@@ -118,16 +116,16 @@ class TestSanJego(unittest.TestCase):
         player2 = 1
         # [0] | [0]   | [0]
         #     | [1,1] |
-        gf = GameField.setup_field({
+        game_field_specs = {
             (0, 0): Tower(owner=player1),
             (0, 1): Tower(owner=player1),
             (0, 2): Tower(owner=player2),
             (1, 1): Tower(owner=player2)
-        })
+        }
 
         expected_values = (-3, 3)  # (min starts, max starts)
         for maximising_player in [True, False]:
-            node = GameNode(gf, MoveOnOpposingOnlyRuleSet, max_player=maximising_player)
+            gf, node = gamefabric.fabricate("oppose", 2, 3, maximising_player, game_field_specs)
             expected_value = expected_values[maximising_player]
             for depth in range(3, 5):  # depth < 3 would only not calculate the correct value
                 with self.subTest(f"depth {depth} as {('min', 'max')[maximising_player]}"):
@@ -144,15 +142,15 @@ class TestSanJego(unittest.TestCase):
         maximising_player = True
 
         # [0] | [0, 1, 1] | [1]
-        gf = GameField.setup_field({
+        game_field_specs = {
             (0, 0): Tower(owner=player1),  # (0,0) -> (0,1) is illegal
             (0, 1): Tower(structure=[player1] + [player2] * 2),  # player1 may not move this
             (0, 2): Tower(owner=player2)
-        })
+        }
         self.assertTrue(maximising_player, "misconfigured test: it should be player1's (max) move")
 
         expected_value = 4
-        node = GameNode(gf, BaseRuleSet, max_player=maximising_player)
+        gf, node = gamefabric.fabricate("base", 1, 3, maximising_player, game_field_specs)
         actual_value = alpha_beta_search(node, depth=3, maximising_player=maximising_player)  # depth 3 is enough
         self.assertEqual(expected_value, actual_value,
                          f"expected a game value of {expected_value} but got {actual_value}")
@@ -178,8 +176,7 @@ class TestMoveLists(unittest.TestCase):
                               Move((0, 1), (0, 0)), Move.skip()]
         expected_value = 4
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, BaseRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("base", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -204,8 +201,7 @@ class TestMoveLists(unittest.TestCase):
                               Move.skip()]
         expected_value = 2
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, BaseRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("base", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -228,22 +224,26 @@ class TestMoveLists(unittest.TestCase):
         width = 4
         max_player_starts = True
 
-        expected_move_list = [Move((1, 1), (1, 2)), Move((2, 1), (2, 2)),
-                              Move((1, 3), (0, 3)), Move((0, 1), (0, 0)),
-                              Move((1, 2), (0, 2)), Move((2, 2), (2, 3)),
-                              Move((0, 2), (0, 3)), Move((1, 0), (0, 0)),
-                              Move.skip()]
+        expected_move_list = [[Move((1, 1), (1, 2)), Move((2, 1), (2, 2)),
+                               Move((1, 3), (0, 3)), Move((0, 1), (0, 0)),
+                               Move((1, 2), (0, 2)), Move((2, 2), (2, 3)),
+                               Move((0, 2), (0, 3)), Move((1, 0), (0, 0)),
+                               Move.skip()],
+                              [Move((1, 1), (1, 2)), Move((2, 3), (1, 3)),
+                               Move((0, 0), (0, 1)), Move((2, 1), (2, 2)),
+                               Move((1, 2), (0, 2)), Move((0, 3), (1, 3)),
+                               Move((0, 2), (0, 1)), Move((1, 0), (2, 0)),
+                               Move.skip()]]
         expected_value = 2
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, BaseRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("base", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
                                              trace_moves=True)
 
         self.assertEqual(expected_value, value)
-        self.assertEqual(expected_move_list, move_list)
+        self.assertIn(move_list, expected_move_list)
 
     def test_oppose_2x2(self) -> None:
         """
@@ -260,8 +260,7 @@ class TestMoveLists(unittest.TestCase):
                               Move((0, 1), (0, 0)), Move.skip()]
         expected_value = 4
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, MoveOnOpposingOnlyRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("oppose", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -286,8 +285,7 @@ class TestMoveLists(unittest.TestCase):
                               Move.skip()]
         expected_value = 2
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, MoveOnOpposingOnlyRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("oppose", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -308,20 +306,22 @@ class TestMoveLists(unittest.TestCase):
         width = 3
         max_player_starts = True
 
-        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (0, 2)),
-                              Move((2, 2), (2, 1)), Move((1, 0), (0, 0)),
-                              Move((0, 1), (0, 0)), Move.skip()]
+        expected_move_list = [[Move((1, 1), (0, 1)), Move((1, 2), (0, 2)),
+                               Move((2, 2), (2, 1)), Move((1, 0), (0, 0)),
+                               Move((0, 1), (0, 0)), Move.skip()],
+                              [Move((1, 1), (2, 1)), Move((1, 2), (2, 2)),
+                               Move((0, 2), (0, 1)), Move((1, 0), (2, 0)),
+                               Move((2, 1), (2, 2)), Move.skip()]]
         expected_value = 2
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, MoveOnOpposingOnlyRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("oppose", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
                                              trace_moves=True)
 
         self.assertEqual(expected_value, value)
-        self.assertEqual(expected_move_list, move_list)
+        self.assertIn(move_list, expected_move_list)
 
     @pytest.mark.slow
     def test_oppose_3x4(self) -> None:
@@ -335,20 +335,23 @@ class TestMoveLists(unittest.TestCase):
         width = 4
         max_player_starts = True
 
-        expected_move_list = [Move((2, 2), (2, 1)), Move((0, 1), (0, 2)),
-                              Move((1, 1), (1, 0)), Move((1, 2), (1, 3)),
-                              Move.skip()]
+        expected_move_list = [[Move((2, 2), (2, 1)), Move((0, 1), (0, 2)),
+                               Move((1, 1), (1, 0)), Move((1, 2), (1, 3)),
+                               Move.skip()],
+                              [Move((2, 2), (2, 1)), Move((0, 3), (0, 2)),
+                               Move((1, 1), (0, 1)), Move((1, 0), (2, 0)),
+                               Move((1, 3), (1, 2)), Move((0, 2), (1, 2)),
+                               Move((2, 1), (2, 0)), Move.skip()]]
         expected_value = 0
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, MoveOnOpposingOnlyRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("oppose", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
                                              trace_moves=True)
 
         self.assertEqual(expected_value, value)
-        self.assertEqual(expected_move_list, move_list)
+        self.assertIn(move_list, expected_move_list)
 
     def test_kings_2x2(self) -> None:
         """
@@ -365,8 +368,7 @@ class TestMoveLists(unittest.TestCase):
                               Move((0, 0), (0, 1)), Move.skip()]
         expected_value = 4
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, KingsRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("kings", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -392,8 +394,7 @@ class TestMoveLists(unittest.TestCase):
                               Move((0, 0), (0, 1)), Move.skip()]
         expected_value = 6
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, KingsRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("kings", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -422,8 +423,7 @@ class TestMoveLists(unittest.TestCase):
                               Move((0, 0), (1, 0)), Move.skip()]
         expected_value = 7
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, KingsRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("kings", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -442,19 +442,20 @@ class TestMoveLists(unittest.TestCase):
         width = 2
         max_player_starts = True
 
-        expected_move_list = [Move((1, 1), (0, 1)), Move((0, 0), (0, 1)),
-                              Move.skip()]
+        expected_move_list = [[Move((1, 1), (0, 1)), Move((0, 0), (0, 1)),
+                               Move.skip()],
+                              [Move((1, 1), (0, 1)), Move((0, 0), (1, 0)),
+                               Move.skip()]]
         expected_value = 2
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, FreeRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("free", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
                                              trace_moves=True)
 
         self.assertEqual(expected_value, value)
-        self.assertEqual(expected_move_list, move_list)
+        self.assertIn(move_list, expected_move_list)
 
     def test_free_2x3(self) -> None:
         """
@@ -472,8 +473,7 @@ class TestMoveLists(unittest.TestCase):
                               Move.skip()]
         expected_value = 2
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, FreeRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("free", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -502,11 +502,14 @@ class TestMoveLists(unittest.TestCase):
                                Move.skip()],
                               [Move((1, 1), (0, 1)), Move((1, 2), (2, 2)),
                                Move((1, 0), (0, 0)), Move((2, 1), (2, 2)),
-                               Move((0, 1), (0, 0)), Move.skip()]]
+                               Move((0, 1), (0, 0)), Move.skip()],
+                              [Move((1, 1), (2, 1)), Move((1, 2), (0, 2)),
+                               Move((2, 0), (2, 1)), Move((0, 1), (0, 2)),
+                               Move((2, 1), (2, 2)), Move((1, 0), (0, 0)),
+                               Move.skip()]]
         expected_value = 1
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, FreeRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("free", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -530,8 +533,7 @@ class TestMoveLists(unittest.TestCase):
                               Move((0, 1), (0, 0)), Move.skip()]
         expected_value = 4
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, MajorityRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("majority", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -556,8 +558,7 @@ class TestMoveLists(unittest.TestCase):
                               Move.skip()]
         expected_value = 2
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, MajorityRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("majority", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
@@ -579,21 +580,27 @@ class TestMoveLists(unittest.TestCase):
         width = 3
         max_player_starts = True
 
-        expected_move_list = [Move((1, 1), (0, 1)), Move((1, 2), (2, 2)),
-                              Move((2, 0), (1, 0)), Move((0, 1), (0, 2)),
-                              Move((1, 0), (0, 0)), Move((2, 1), (2, 2)),
-                              Move.skip()]
+        expected_move_list = [[Move((1, 1), (0, 1)), Move((1, 2), (2, 2)),
+                               Move((2, 0), (1, 0)), Move((0, 1), (0, 2)),
+                               Move((1, 0), (0, 0)), Move((2, 1), (2, 2)),
+                               Move.skip()],
+                              [Move((1, 1), (2, 1)),
+                               Move((1, 2), (0, 2)),
+                               Move((0, 0), (1, 0)),
+                               Move((2, 1), (2, 2)),
+                               Move((2, 0), (1, 0)),
+                               Move((0, 1), (0, 2)),
+                               Move.skip()]]
         expected_value = 0
 
-        game_field = GameField(height=height, width=width)
-        start_node = GameNode(game_field, MajorityRuleSet, max_player=max_player_starts)
+        game_field, start_node = gamefabric.fabricate("majority", height, width, max_player_starts)
 
         depth = 2 * height * width + 1
         value, move_list = alpha_beta_search(node=start_node, depth=depth, maximising_player=max_player_starts,
                                              trace_moves=True)
 
         self.assertEqual(expected_value, value)
-        self.assertEqual(expected_move_list, move_list)
+        self.assertIn(move_list, expected_move_list)
 
 
 if __name__ == '__main__':
