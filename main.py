@@ -21,14 +21,14 @@ SEP_LENGTH = 25
 @ex.config
 def config():
     # game relevant
-    rules = 'base'
-    height = 1
-    width = 1
-    max_player_starts = True
-    max_depth = float('inf')
+    rules = 'base'              # the rule set that will be used
+    height = 1                  # height of the game field
+    width = 1                   # width of the game field
+    max_player_starts = True    # whether the maximising player (top left corner) makes the first move
+    max_depth = float('inf')    # the amount of consecutive half-moves that will be evaluated at most
 
     # additional configs
-    verbose = False
+    verbose = False             # whether to print debug information
 
 
 def print_move_list(move_list: List[Move], max_player: bool):
