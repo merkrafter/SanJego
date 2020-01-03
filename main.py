@@ -4,6 +4,7 @@ from typing import List
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
 
+import searching
 from sanjego.gameobjects import GameField, Move
 from rulesets.Rulesets import BaseRuleSet, KingsRuleSet, MoveOnOpposingOnlyRuleSet, MajorityRuleSet, FreeRuleSet
 from searching.methods import alpha_beta_search
@@ -72,7 +73,12 @@ def main(rules: str, height: int, width: int, max_player_starts: bool, max_depth
 
     # create the necessary objects
     game_field = GameField(height=height, width=width)
-    start_node = GameNode(game_field, RULES[rules], max_player=max_player_starts)
+    if RULES[rules] == KingsRuleSet:
+        start_node = GameNode(game_field, RULES[rules], max_player=max_player_starts,
+                              neighbourhood=searching.util.kings_neighbourhood)
+    else:
+        start_node = GameNode(game_field, RULES[rules], max_player=max_player_starts,
+                              neighbourhood=searching.util.quad_neighbourhood)
 
     # Each time a player moves, the number of towers on the field is reduced by 1.
     # If in the worst case only one player is able to move, the game is over in at most 2*size_of_the_field moves.
