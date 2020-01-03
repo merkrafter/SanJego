@@ -1,4 +1,4 @@
-from typing import Iterator, Tuple, Generator
+from typing import Iterator, Tuple, Generator, Callable
 
 from rulesets.Rulesets import BaseRuleSet
 from sanjego.gameobjects import GameField, Move
@@ -33,7 +33,9 @@ class GameNode(object):
 
     def __init__(self, game_field: GameField, rule_set_type: type(BaseRuleSet), move: Move = None,
                  max_player: bool = True,
-                 skipped_before: bool = False) -> None:
+                 skipped_before: bool = False,
+                 neighbourhood: Callable[
+                     [Tuple[int, int]], Generator[Tuple[int, int], None, None]] = kings_neighbourhood) -> None:
         """
         Creates a new `GameNode` by setting the game field, rule set and player given as arguments.
         If `player` is omitted, it is set to `game_field`'s `player1` attribute.
@@ -44,6 +46,7 @@ class GameNode(object):
         :param rule_set_type: a subtype of BaseRuleSet (or BaseRuleSet itself)
         :param move: stores information on how this game node was derived from the previous one
         :param max_player: whether the maximising player moves next
+        :param neighbourhood: function to determine neighbourhood of a position
         """
         # both parameters can not be None, because it is not clear what RuleSet to use in that case
         self.skipped_before = skipped_before
@@ -52,7 +55,7 @@ class GameNode(object):
         self.rule_set_type = rule_set_type
         self.rule_set = rule_set_type(game_field)
         self.max_player = max_player
-        self.neighbourhood = kings_neighbourhood
+        self.neighbourhood = neighbourhood
         if self.max_player:
             self.player = self.game_field.player1
         else:
@@ -75,7 +78,8 @@ class GameNode(object):
                 # ... and yield any allowed moves
                 if self.rule_set.allows_move(self.player, move=move):
                     count += 1
-                    gn = GameNode(self.game_field, self.rule_set_type, move, not self.max_player, skipped_before=False)
+                    gn = GameNode(self.game_field, self.rule_set_type, move, not self.max_player,
+                                  skipped_before=False, neighbourhood=self.neighbourhood)
                     gn.make_move()  # needs to be done here already to allow proper sorting
                     heur_val = gn.heuristic_value()
                     # Now the move must be taken back, because otherwise following iterations won't work.
@@ -89,7 +93,8 @@ class GameNode(object):
             # for child in GameNode(gf, RuleSet(gf), not self.max_player, skipped_before=True).children():
             #    yield child
             # however, this could conflict with the alpha beta search (moving player)
-            gn = GameNode(self.game_field, self.rule_set_type, Move.skip(), not self.max_player, skipped_before=True)
+            gn = GameNode(self.game_field, self.rule_set_type, Move.skip(), not self.max_player, skipped_before=True,
+                          neighbourhood=self.neighbourhood)
             heur_val = gn.heuristic_value()  # no need to actually make the move as it is a skip anyway
             yield gn, heur_val
 
