@@ -14,6 +14,17 @@ def kings_neighbourhood(pos: Tuple[int, int]) -> Generator[Tuple[int, int], None
         yield to_pos
 
 
+def quad_neighbourhood(pos: Tuple[int, int]) -> Generator[Tuple[int, int], None, None]:
+    """
+    Given a position `pos` this function generates all positions in a quad neighbourhood around `pos`.
+    :param pos: a position given by a tuple
+    """
+    yield pos[0] + 1, pos[1]
+    yield pos[0] - 1, pos[1]
+    yield pos[0], pos[1] + 1
+    yield pos[0], pos[1] - 1
+
+
 class GameNode(object):
     """
     Represents a state of San Jego. It provides methods to iterate over all descending game states, and receive the
