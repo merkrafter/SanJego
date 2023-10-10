@@ -6,7 +6,7 @@ docopt==0.6.2
 entrypoints==0.3
 flake8==3.7.9
 gitdb2==2.0.6
-GitPython==3.0.4
+GitPython==3.1.37
 importlib-metadata==0.23
 jsonpickle==0.9.6
 mccabe==0.6.1
